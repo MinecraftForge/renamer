@@ -1,38 +1,42 @@
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
-    id 'net.minecraftforge.gradleutils' version '3.3.39' // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
 }
 
 rootProject.name = 'renamer-gradle'
 
-dependencyResolutionManagement {
-    repositories {
-        mavenCentral()
-        maven gradleutils.forgeMaven
-        maven { url = 'https://maven.moddinglegacy.com/maven' } // Gradle API
-        //mavenLocal()
+// Applying plugins causes them to not have any IDE support when also applied to any build.gradle files
+// The workaround for now is to use this listener here so that it can stay in settings.gradle
+// See: https://youtrack.jetbrains.com/issue/IDEA-332061/Gradle-Missing-Code-Completion-Suggestions-for-Settings-Plugins-in-Groovy-DSL
+gradle.beforeProject { Project project ->
+    project.pluginManager.withPlugin('net.minecraftforge.gradleutils') {
+        project.repositories {
+            mavenCentral()
+            maven project.gradleutils.forgeMaven
+            //mavenLocal()
+        }
     }
-
-    //@formatter:off
-    versionCatalogs.register('libs') {
-        plugin 'licenser',       'net.minecraftforge.licenser'   version '1.2.0' // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
-        plugin 'gitversion',     'net.minecraftforge.gitversion' version '3.1.0' // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
-        plugin 'changelog',      'net.minecraftforge.changelog'  version '3.1.1' // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
-        plugin 'plugin-publish', 'com.gradle.plugin-publish'     version '1.3.1' // https://plugins.gradle.org/plugin/com.gradle.plugin-publish
-        plugin 'shadow',         'com.gradleup.shadow'           version '9.3.0' // https://plugins.gradle.org/plugin/com.gradleup.shadow
-
-        // Static Analysis
-        library 'nulls', 'org.jspecify',  'jspecify' version '1.0.0'
-        library 'jetbrains', 'org.jetbrains', 'annotations' version '26.0.2'
-
-        // Gradle API
-        // Original: https://github.com/remal-gradle-api/packages/packages/760197?version=9.0.0
-        // Mirror:   https://repos.moddinglegacy.com/#/modding-legacy/name/remal/gradle-api/gradle-api/9.0.0
-        version 'gradle', '9.0.0'
-        library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
-
-        // GradleUtils Shared Base
-        library 'gradleutils-shared', 'net.minecraftforge', 'gradleutils-shared' version '3.3.39'
-    }
-    //@formatter:on
 }
+
+//@formatter:off
+dependencyResolutionManagement.versionCatalogs.register('libs') {
+    version 'gradleutils', '3.3.42'
+
+    plugin 'licenser',       'net.minecraftforge.licenser'   version '1.2.0' // https://plugins.gradle.org/plugin/net.minecraftforge.licenser
+    plugin 'gradleutils',    'net.minecraftforge.gradleutils' versionRef 'gradleutils' // https://plugins.gradle.org/plugin/net.minecraftforge.gradleutils
+    plugin 'gitversion',     'net.minecraftforge.gitversion'  version '3.1.7' // https://plugins.gradle.org/plugin/net.minecraftforge.gitversion
+    plugin 'changelog',      'net.minecraftforge.changelog'   version '3.2.1' // https://plugins.gradle.org/plugin/net.minecraftforge.changelog
+    plugin 'plugin-publish', 'com.gradle.plugin-publish'      version '2.0.0' // https://plugins.gradle.org/plugin/com.gradle.plugin-publish
+    plugin 'shadow',         'com.gradleup.shadow'           version '9.3.0' // https://plugins.gradle.org/plugin/com.gradleup.shadow
+
+    // Static Analysis
+    library 'annotations-jspecify',  'org.jspecify',  'jspecify'    version '1.0.0'
+    library 'annotations-jetbrains', 'org.jetbrains', 'annotations' version '26.0.2'
+
+    // Gradle API
+    version 'gradle', '9.0.0'
+    library 'gradle', 'name.remal.gradle-api', 'gradle-api'  versionRef 'gradle'
+
+    // GradleUtils Shared Base
+    library 'gradleutils-shared', 'net.minecraftforge', 'gradleutils-shared' versionRef 'gradleutils'
+}
+//@formatter:on

@@ -1,13 +1,11 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
-import com.github.jengelman.gradle.plugins.shadow.ShadowJavaPlugin
-import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 
 plugins {
     id 'java-gradle-plugin'
     id 'idea'
     id 'eclipse'
     id 'maven-publish'
-    id 'net.minecraftforge.gradleutils'
+    alias libs.plugins.gradleutils
     alias libs.plugins.gitversion
     alias libs.plugins.changelog
     alias libs.plugins.licenser
@@ -17,9 +15,10 @@ plugins {
 
 gradleutils.displayName = 'Renamer Gradle Plugin'
 description = 'Utilities for renaming java related files.'
-base.archivesName = 'renamer-gradle'
 group = 'net.minecraftforge'
 version = gitversion.tagOffset
+
+println "Version: $version"
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -31,20 +30,14 @@ gradleutils.pluginDevDefaults(configurations, libs.versions.gradle)
 
 dependencies {
     // Static Analysis
-    compileOnly libs.nulls
-    compileOnly libs.jetbrains
+    api libs.annotations.jspecify
+    compileOnly libs.annotations.jetbrains
 
     // Gradle API
     compileOnly libs.gradle
 
     // GradleUtils Shared Base
     implementation libs.gradleutils.shared
-}
-
-license {
-    header = rootProject.file('../LICENSE-header.txt')
-    newLine = false
-    exclude '**/*.properties'
 }
 
 tasks.named('jar', Jar) {
@@ -55,17 +48,29 @@ tasks.named('shadowJar', ShadowJar) {
     enableAutoRelocation = true
     archiveClassifier = null
     relocationPrefix = 'net.minecraftforge.renamer.gradle.shadow'
+
+    minimize()
+    dependencies {
+        exclude dependency(libs.annotations.jspecify)
+    }
+}
+
+tasks.named('javadoc', Javadoc) {
+    javadocTool = javaToolchains.javadocToolFor { languageVersion = JavaLanguageVersion.of(25) }
 }
 
 /*
-tasks.withType(Javadoc).configureEach {
-    javadocTool = javaToolchains.javadocToolFor { languageVersion = JavaLanguageVersion.of(24) }
-}
-tasks.named('javadocJar') {
+tasks.named('javadocJar', Jar) {
     // Remove 4MB from javadocs jar
     exclude 'resource-files/fonts/'
 }
-*/
+ */
+
+license {
+    header = rootProject.file('../LICENSE-header.txt')
+    newLine = false
+    exclude '**/*.properties'
+}
 
 changelog {
     fromBase()
@@ -78,7 +83,7 @@ gradlePlugin {
     plugins.register('renamer') {
         id = 'net.minecraftforge.renamer'
         implementationClass = 'net.minecraftforge.renamer.gradle.RenamerPlugin'
-        displayName = gradleutils.displayName
+        displayName = gradleutils.displayName.get()
         description = project.description
         tags = ['minecraftforge']
     }

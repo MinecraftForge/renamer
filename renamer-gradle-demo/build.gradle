@@ -1,5 +1,7 @@
 plugins {
     id 'java'
+    id 'idea'
+    id 'eclipse'
     id 'maven-publish'
     id 'net.minecraftforge.renamer'
 }
@@ -9,11 +11,11 @@ group = 'net.minecraftforge'
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 // I dont know why this needs to be here and not in the settings.gradle
-repositories {
-    mavenCentral()
-    maven { url = 'https://maven.minecraftforge.net' }
-    flatDir dirs: './libs'
-}
+//repositories {
+//    mavenCentral()
+//    maven { url = 'https://maven.minecraftforge.net' }
+//    flatDir dirs: './libs'
+//}
 
 dependencies {
     compileOnly libs.log4j.api
