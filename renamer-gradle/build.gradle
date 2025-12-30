@@ -82,7 +82,7 @@ gradlePlugin {
 
     plugins.register('renamer') {
         id = 'net.minecraftforge.renamer'
-        implementationClass = 'net.minecraftforge.renamer.gradle.RenamerPlugin'
+        implementationClass = 'net.minecraftforge.renamer.gradle.internal.RenamerPlugin'
         displayName = gradleutils.displayName.get()
         description = project.description
         tags = ['minecraftforge']
