@@ -75,6 +75,8 @@ public class Main {
         OptionSpec<File> ffLinesO = parser.accepts("ff-line-numbers", "Applies line number corrections from Fernflower.").withRequiredArg().ofType(File.class);
         OptionSpec<Void> reverseO = parser.accepts("reverse", "Reverse provided mapping file before applying");
         OptionSpec<Void> disableAbstractParam = parser.accepts("disable-abstract-param", "Disables collection of names of parameters of abstract methods for FernFlower");
+        OptionSpec<Void> helpO = parser.accepts("help", "Prints help and exits").forHelp();
+
         OptionSet options;
         try {
             options = parser.parse(expandArgs(args));
@@ -103,7 +105,13 @@ public class Main {
             };
         }
 
-        log.accept("Forge Auto Renaming Tool v" + getVersion());
+        log.accept("Forge Renamer v" + getVersion());
+
+        if (options.has(helpO)) {
+        	parser.printHelpOn(System.out);
+        	return;
+        }
+
         Renamer.Builder builder = Renamer.builder();
         builder.withJvmClasspath();
         builder.logger(log);

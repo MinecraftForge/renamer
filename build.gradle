@@ -65,7 +65,7 @@ tasks.named('jar', Jar) {
             'Implementation-Title'  : 'Renamer',
             'Implementation-Version': project.version,
             'Implementation-Vendor' : gradleutils.vendor.get()
-        ], 'net/minecraftforge/fart/')
+        ], 'net/minecraftforge/renamer/')
     }
 }
 
