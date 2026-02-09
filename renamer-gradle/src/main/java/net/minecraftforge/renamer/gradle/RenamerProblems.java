@@ -9,9 +9,6 @@ import javax.inject.Inject;
 
 import org.gradle.api.Task;
 import org.gradle.api.problems.Severity;
-import org.gradle.api.tasks.TaskProvider;
-import org.gradle.api.tasks.bundling.AbstractArchiveTask;
-
 import java.io.Serial;
 
 abstract class RenamerProblems extends EnhancedProblems {

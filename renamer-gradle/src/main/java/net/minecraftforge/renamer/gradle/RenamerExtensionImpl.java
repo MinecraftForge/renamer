@@ -13,8 +13,6 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
-import org.gradle.api.tasks.bundling.AbstractArchiveTask;
-
 import javax.inject.Inject;
 
 abstract class RenamerExtensionImpl implements RenamerExtensionInternal {

@@ -5,15 +5,13 @@
 package net.minecraftforge.renamer.gradle;
 
 import net.minecraftforge.gradleutils.shared.ToolExecBase;
-import org.gradle.api.Task;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.PublishArtifact;
 import org.gradle.api.artifacts.dsl.DependencyFactory;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.RegularFileProperty;
-import org.gradle.api.internal.tasks.DefaultTaskDependency;
-import org.gradle.api.internal.tasks.TaskDependencyFactory;
+import org.gradle.api.logging.LogLevel;
 import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
@@ -60,6 +58,8 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
     @Inject
     public RenameJar() {
         super(Tools.RENAMER);
+        // We don't want the default runs to log to the main task output
+        this.getStandardOutputLogLevel().convention(LogLevel.INFO);
 
         // As a reminder, this is overridden by manually calling one of the #mappings methods
         this.getMap().convention(getProviders().provider(() -> {
@@ -78,7 +78,7 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
                     int idx = file.getName().lastIndexOf('.');
                     var inputName = file.getName().substring(0, idx);
                     var ext = file.getName().substring(idx);
-                    name = inputName + classifier + ext;
+                    name = inputName + '-' + classifier + ext;
 
                     if (name.equals(file.getName()))
                         name = inputName + classifier + "-renamed" + ext;
