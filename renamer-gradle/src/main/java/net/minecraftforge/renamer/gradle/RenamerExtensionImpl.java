@@ -55,8 +55,16 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
         this.mappings.setFrom(files);
     }
 
+    private static final String ASSEMBLE = "assemble";
     @Override
     public TaskProvider<RenameJar> classes(String name, Action<? super RenameJar> action) {
-        return getProject().getTasks().register(name, RenameJar.class, action);
+    	var tasks = getProject().getTasks();
+        var ret = tasks.register(name, RenameJar.class, action);
+
+        // Make the assemble task build our file, like the normal java plugin does
+        if (tasks.getNames().contains(ASSEMBLE))
+        	tasks.named(ASSEMBLE).configure(task -> task.dependsOn(ret));
+
+        return ret;
     }
 }
