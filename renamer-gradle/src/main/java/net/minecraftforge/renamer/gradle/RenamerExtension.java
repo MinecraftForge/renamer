@@ -61,4 +61,48 @@ public interface RenamerExtension {
     }
 
     TaskProvider<RenameJar> classes(String name, TaskProvider<? extends AbstractArchiveTask> input, Action<? super RenameJar> action);
+
+
+    // Convert mapping files from one format to another, Provider version accepts anything that can be resolved to a dependency
+    default TaskProvider<ConvertMappings> convert(String name) {
+    	return convert(name, (Provider<?>)null, "tsrg", task -> {});
+    }
+    default TaskProvider<ConvertMappings> convert(String name, Action<? super ConvertMappings> action) {
+    	return convert(name, (Provider<?>)null, "tsrg", action);
+    }
+    default TaskProvider<ConvertMappings> convert(String name, Provider<?> input) {
+    	return convert(name, input, "tsrg", task -> {});
+    }
+    default TaskProvider<ConvertMappings> convert(String name, Provider<?> input, Action<? super ConvertMappings> action) {
+    	return convert(name, input, "tsrg", action);
+    }
+    default TaskProvider<ConvertMappings> convert(String name, Provider<?> input, String format) {
+    	return convert(name, input, format, task -> {});
+    }
+    TaskProvider<ConvertMappings> convert(String name, Provider<?> input, String format, Action<? super ConvertMappings> action);
+
+
+    // Convert mappings files from one format to another, TaskProvider accepts anything that has a 'RegularFileProperty getOutput()'
+    default TaskProvider<ConvertMappings> convert(String name, TaskProvider<?> input) {
+    	return convert(name, input, "tsrg", task -> {});
+    }
+    default TaskProvider<ConvertMappings> convert(String name, TaskProvider<?> input, Action<? super ConvertMappings> action) {
+    	return convert(name, input, "tsrg", action);
+    }
+    default TaskProvider<ConvertMappings> convert(String name, TaskProvider<?> input, String format) {
+    	return convert(name, input, format, task -> {});
+    }
+    TaskProvider<ConvertMappings> convert(String name, TaskProvider<?> input, String format, Action<? super ConvertMappings> action);
+
+    // Chains two mapping files together, Provider accepts anything that can be resolved to a dependency, TaskProvider accepts anything that has a 'RegularFileProperty getOutput()'
+    default TaskProvider<ChainMappings> chain(String name) {
+    	return chain(name, task -> {});
+    }
+    TaskProvider<ChainMappings> chain(String name, Action<? super ChainMappings> action);
+
+    // Merges multiple mapping files together, Provider accepts anything that can be resolved to a dependency, TaskProvider accepts anything that has a 'RegularFileProperty getOutput()'
+    default TaskProvider<MergeMappings> merge(String name) {
+    	return merge(name, task -> {});
+    }
+    TaskProvider<MergeMappings> merge(String name, Action<? super MergeMappings> action);
 }

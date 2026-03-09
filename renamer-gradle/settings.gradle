@@ -38,5 +38,8 @@ dependencyResolutionManagement.versionCatalogs.register('libs') {
 
     // GradleUtils Shared Base
     library 'gradleutils-shared', 'net.minecraftforge', 'gradleutils-shared' versionRef 'gradleutils'
+
+    // For converting different mapping formats
+    library 'srgutils', 'net.minecraftforge:srgutils:0.6.1'
 }
 //@formatter:on

@@ -28,6 +28,10 @@ java {
 
 gradleutils.pluginDevDefaults(configurations, libs.versions.gradle)
 
+repositories {
+	maven gradleutils.forgeMaven
+}
+
 dependencies {
     // Static Analysis
     api libs.annotations.jspecify
@@ -38,6 +42,7 @@ dependencies {
 
     // GradleUtils Shared Base
     implementation libs.gradleutils.shared
+    implementation libs.srgutils
 }
 
 tasks.named('jar', Jar) {

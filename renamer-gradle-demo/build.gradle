@@ -33,6 +33,29 @@ publishing {
     }
 }
 
+// Examples on how to work with mapping files
+// Convert from one format to another, this converts from gzip compressed, to normal tsrg
+def tsrg = renamer.convert('toTsrg') {
+    map = files('libs/mappings_test-1.0.tsrg.gz')
+}
+// The input map and format can be provided in the convert function. Making it a one line
+def srg = renamer.convert('toSrg', tsrg, 'srg')
+// You can also reverse the output after converting.
+renamer.convert('reverse', srg) {
+    reverse = true
+    format = 'srg'
+}
+// Chaining Mappings A->B and B->C will output a map for A->C
+renamer.chain('chain') {
+	left tsrg
+	right files('libs/chain.tsrg')
+}
+// Merging is useful if you have multiple map files, and need to call something that only supports one map file
+renamer.merge('merge') {
+	map tsrg
+	map files('libs/chain.tsrg')
+}
+
 //renamer {
 //    mappings = files('libs/mappings_test-1.0.tsrg.gz')
 //    //mappings('test', '1.0')

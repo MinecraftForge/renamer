@@ -13,6 +13,8 @@ import org.gradle.api.file.FileCollection;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
+import org.jspecify.annotations.Nullable;
+
 import javax.inject.Inject;
 
 abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
@@ -66,5 +68,39 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
         	tasks.named(ASSEMBLE).configure(task -> task.dependsOn(ret));
 
         return ret;
+    }
+
+    @Override
+    public TaskProvider<ConvertMappings> convert(String name, @Nullable Provider<?> input, String format, Action<? super ConvertMappings> action) {
+    	var output = getProject().getLayout().getBuildDirectory().file("mappings/" + name + '.' + format);
+    	return getProject().getTasks().register(name, ConvertMappings.class, task -> {
+    		if (input != null)
+    			task.map(input);
+    		task.getFormat().set(format);
+    		task.getOutput().set(output);
+    		action.execute(task);
+    	});
+    }
+
+    @Override
+    public TaskProvider<ConvertMappings> convert(String name, @Nullable TaskProvider<?> input, String format, Action<? super ConvertMappings> action) {
+    	var output = getProject().getLayout().getBuildDirectory().file("mappings/" + name + '.' + format);
+    	return getProject().getTasks().register(name, ConvertMappings.class, task -> {
+    		if (input != null)
+    			task.map(input);
+    		task.getFormat().set(format);
+    		task.getOutput().set(output);
+    		action.execute(task);
+    	});
+    }
+
+    @Override
+    public TaskProvider<ChainMappings> chain(String name, Action<? super ChainMappings> action) {
+    	return getProject().getTasks().register(name, ChainMappings.class, action);
+    }
+
+    @Override
+    public TaskProvider<MergeMappings> merge(String name, Action<? super MergeMappings> action) {
+    	return getProject().getTasks().register(name, MergeMappings.class, action);
     }
 }
