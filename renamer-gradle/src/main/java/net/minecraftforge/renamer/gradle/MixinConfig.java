@@ -4,27 +4,35 @@
  */
 package net.minecraftforge.renamer.gradle;
 
-import org.gradle.api.file.ConfigurableFileCollection;
+import java.util.Locale;
+
+import org.gradle.api.Action;
 import org.gradle.api.provider.ListProperty;
-import org.gradle.api.provider.MapProperty;
-import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.tasks.bundling.Jar;
 
-public interface MixinConfig {
-	abstract Property<String> getConfig();
-	abstract Property<String> getRefMap();
-	abstract Property<Boolean> getDisableTargetValidator();
-	abstract Property<Boolean> getDisableTargetExport();
-	abstract Property<Boolean> getDisableOverwriteChecker();
-	abstract Property<String> getOverwriteErrorLevel();
-	abstract Property<String> getDefaultObfuscationEnv();
-	abstract ListProperty<String> getMappingTypes();
-	abstract MapProperty<String, String> getTokens();
-	abstract ConfigurableFileCollection getExtraMappings();
-	abstract Property<Boolean> getQuiet();
-	abstract Property<Boolean> getShowMessageTypes();
-	abstract MapProperty<String, String> getMessages();
+public interface MixinConfig extends MixinSourceSetConfig {
+	ListProperty<String> getConfigs();
+	default void config(String name) {
+		getConfigs().add(name);
+	}
+	default void config(Provider<String> name) {
+		getConfigs().add(name);
+	}
 
-	void sourceset(SourceSet sourceSet);
+	default MixinSourceSetConfig source(SourceSet source) {
+		return source(source, source.getName().toLowerCase(Locale.ENGLISH));
+	}
+	default MixinSourceSetConfig source(SourceSet source, Action<? super MixinSourceSetConfig> action) {
+		return source(source, source.getName().toLowerCase(Locale.ENGLISH), action);
+	}
+	default MixinSourceSetConfig source(SourceSet source, String name) {
+		return source(source, name, cfg -> {});
+	}
+	MixinSourceSetConfig source(SourceSet source, String name, Action<? super MixinSourceSetConfig> action);
+
 	void run(Object runConfig);
+	void jar(TaskProvider<Jar> provider);
 }

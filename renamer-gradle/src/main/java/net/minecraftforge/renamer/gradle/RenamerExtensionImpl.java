@@ -21,8 +21,6 @@ import org.gradle.api.tasks.bundling.Jar;
 import org.jspecify.annotations.Nullable;
 
 import java.io.File;
-import java.util.Map;
-
 import javax.inject.Inject;
 
 abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
@@ -144,7 +142,7 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     }
 
     @Override
-    public MixinConfig enableMixins(Action<? super MixinConfig> action) {
+    public MixinConfig enableMixinRefmaps(Action<MixinConfig> action) {
     	var ret = getMixin();
     	action.execute(ret);
     	return ret;
@@ -153,23 +151,16 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     private void mixinDefaultActions(Project project) {
     	if (!this.defaultMixinBehavior)
     		return;
+
     	var java = project.getExtensions().findByType(JavaPluginExtension.class);
     	// can't do shit if this isn't java
     	if (java == null)
     		return;
+
     	for (var sourceSet : java.getSourceSets())
-    		this.mixin.sourceset(sourceSet);
+    		this.mixin.source(sourceSet);
 
-    	project.getTasks().named(JavaPlugin.JAR_TASK_NAME, Jar.class, task -> {
-        	// Add MixinConfigs Manifest entry
-    		if (!task.getManifest().getAttributes().containsKey("MixinConfigs"))
-    			task.getManifest().attributes(Map.of("MixinConfigs", this.mixin.getConfig().get()));
-
-    		for (var sourceSet : java.getSourceSets()) {
-    			var ext = sourceSet.getExtensions().getExtraProperties();
-    			task.from(ext.get("refMapFile"), cfg -> cfg.rename(name -> sourceSet.getName() + "-refmap.json"));
-    		}
-    	});
+    	this.mixin.jar(project.getTasks().named(JavaPlugin.JAR_TASK_NAME, Jar.class));
 
     	var minecraft = project.getExtensions().findByName("minecraft");
     	var runs = minecraft == null ? null : (NamedDomainObjectContainer<?>)InvokerHelper.getProperty(minecraft, "runs");

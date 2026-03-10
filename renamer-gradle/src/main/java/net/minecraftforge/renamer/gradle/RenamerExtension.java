@@ -119,9 +119,9 @@ public interface RenamerExtension {
     ///
     ///
     ///
-    default MixinConfig enableMixins() {
-    	return enableMixins(task -> {});
+    default MixinConfig enableMixinRefmaps() {
+    	return enableMixinRefmaps(task -> {});
     }
-    MixinConfig enableMixins(Action<? super MixinConfig> action);
+    MixinConfig enableMixinRefmaps(Action<MixinConfig> action);
     MixinConfig getMixin();
 }
