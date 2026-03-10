@@ -20,6 +20,7 @@ import javax.inject.Inject;
 abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     // Renamer inputs
     final ConfigurableFileCollection mappings = getObjects().fileCollection();
+	private int dependencyCount = 0;
 
     protected abstract @Inject Project getProject();
 
@@ -44,12 +45,13 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     }
 
     @Override
-    public void mappings(Provider<? extends Dependency> dependency) {
-        var configuration = getProject().getConfigurations().detachedConfiguration();
-        configuration.getDependencies().addLater(dependency);
-        configuration.setTransitive(false);
+    public void mappings(Provider<?> dependency) {
+    	this.mappings.setFrom(Util.toConfiguration(getProject(), dependency));
+    }
 
-        this.setMappings(configuration);
+    @Override
+    public void mappings(TaskProvider<?> task) {
+    	this.mappings.setFrom(Util.toFile(task));
     }
 
     @Override
@@ -103,4 +105,20 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     public TaskProvider<MergeMappings> merge(String name, Action<? super MergeMappings> action) {
     	return getProject().getTasks().register(name, MergeMappings.class, action);
     }
+
+    @Override
+    public Provider<Dependency> dependency(String notation, Action<? super RenameJar> action) {
+    	var dep = this.getProject().getDependencies().create(notation);
+    	var self = this.getProject().getConfigurations().detachedConfiguration(dep);
+    	self.setTransitive(false);
+    	var deps = this.getProject().getConfigurations().detachedConfiguration(dep);
+    	var libraries = deps.minus(self);
+    	var rename = this.getProject().getTasks().register("_rename_dep_" + this.dependencyCount++, RenameJar.class, task -> {
+    		task.getMap().setFrom(this.mappings);
+    		task.getInput().set(self.getSingleFile());
+    		task.getLibraries().setFrom(libraries);
+    		action.execute(task);
+    	});
+    	return rename.map(task -> this.getProject().getDependencies().create(this.getProject().files(task)));
+	}
 }

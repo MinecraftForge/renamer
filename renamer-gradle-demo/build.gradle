@@ -13,8 +13,16 @@ version = '0.0'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
+repositories {
+	mavenCentral()
+	maven { url = 'https://maven.minecraftforge.net/' }
+}
+
 dependencies {
     compileOnly libs.log4j.api
+    implementation renamer.dependency('net.minecraftforge:srgutils:0.6.0') {
+    	map = files('libs/srgutils.tsrg')
+    }
 }
 
 renamer.classes(jar) {

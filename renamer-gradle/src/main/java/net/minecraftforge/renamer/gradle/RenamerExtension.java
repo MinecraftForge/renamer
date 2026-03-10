@@ -26,9 +26,11 @@ public interface RenamerExtension {
 
     void mappings(Dependency dependency);
 
-    void mappings(Provider<? extends Dependency> dependency);
+    void mappings(Provider<?> dependency);
 
-    default void mappings(ProviderConvertible<? extends Dependency> dependency) {
+    void mappings(TaskProvider<?> task);
+
+    default void mappings(ProviderConvertible<?> dependency) {
         this.mappings(dependency.asProvider());
     }
 
@@ -105,4 +107,11 @@ public interface RenamerExtension {
     	return merge(name, task -> {});
     }
     TaskProvider<MergeMappings> merge(String name, Action<? super MergeMappings> action);
+
+    /// Used for deobfuscating dependencies.
+    /// This does not support source file deobfuscation
+    default Provider<Dependency> dependency(String coordinates) {
+    	return dependency(coordinates, task -> {});
+    }
+    Provider<Dependency> dependency(String coordinates, Action<? super RenameJar> action);
 }
