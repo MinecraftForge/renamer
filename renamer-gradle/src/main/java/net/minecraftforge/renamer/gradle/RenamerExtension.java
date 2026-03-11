@@ -115,13 +115,76 @@ public interface RenamerExtension {
     }
     Provider<Dependency> dependency(String coordinates, Action<? super RenameJar> action);
 
-    /// Does Mixin Magic. See https://github.com/MinecraftForge/renamer/issues/36 for more info
-    ///
-    ///
-    ///
+    /**
+     * {@inheritDoc}
+     * Enable Mixin reference mapping, "mixin magic" as seen <a href="https://github.com/MinecraftForge/renamer/issues/36">here</a>
+     * <p>
+     * For a more in depth explanation:
+     * <ul>
+     *     <li>
+     *         <u>Source sets</u>
+     *         <p>
+     *         Each source set can be individually configured, outputting a {@code refmap.json} to be used at runtime.
+     *         Main Annotation Processor compilation args added:
+     *         <ul>
+     *             <li>{@code "-AmappingTypes=tsrg"}</li>
+     *             <li>{@code "-AdefaultObfuscationEnv=searge"}</li>
+     *             <li>{@code "-AreobfTsrgFile"} set to the path of the {@code .tsrg} mappings file,sourced from the {@code minecraft} dependency</li>
+     *             <li>{@code "-AoutRefMapFile"} a path to where this source set's {@code refmap.json} will be output by the AP</li>
+     *         </ul>
+     *     </li>
+     *     <li>
+     *         <u>Run configs</u>
+     *         <p>
+     *         Adds the {@code "--mixin.config"} run config argument(s), so that developer environment testing will have mixins applied when running the game
+     *     </li>
+     *     <li>
+     *         <u>Jar output</u>
+     *         <p>
+     *         Copies over the refmaps into the output Jar, and fills out the {@code "MixinConfigs"} manifest entry,
+     *         allowing for the application of Mixins in a production environment
+     *     </li>
+     * </ul>
+     */
     default MixinConfig enableMixinRefmaps() {
-    	return enableMixinRefmaps(task -> {});
+        return enableMixinRefmaps(task -> {});
     }
+
+    /**
+     * {@inheritDoc}
+     * Enable and configure Mixin reference mapping, "mixin magic" as seen <a href="https://github.com/MinecraftForge/renamer/issues/36">here</a>
+     * <p>
+     * For a more in depth explanation:
+     * <ul>
+     *     <li>
+     *         <u>Source sets</u>
+     *         <p>
+     *         Each source set can be individually configured, outputting a {@code refmap.json} to be used at runtime.
+     *         Main AP compilation args added:
+     *         <ul>
+     *             <li>{@code "-AmappingTypes=tsrg"}</li>
+     *             <li>{@code "-AdefaultObfuscationEnv=searge"}</li>
+     *             <li>{@code "-AreobfTsrgFile"} set to the path of the {@code .tsrg} mappings file,sourced from the {@code minecraft} dependency</li>
+     *             <li>{@code "-AoutRefMapFile"} a path to where this source set's {@code refmap.json} will be output by the AP</li>
+     *         </ul>
+     *     </li>
+     *     <li>
+     *         <u>Run configs</u>
+     *         <p>
+     *         Adds the {@code "--mixin.config"} run config argument(s), so that developer environment testing will have mixins applied when running the game
+     *     </li>
+     *     <li>
+     *         <u>Jar output</u>
+     *         <p>
+     *         Copies over the refmaps into the output Jar, and fills out the {@code "MixinConfigs"} manifest entry,
+     *         allowing for the application of Mixins in a production environment
+     *     </li>
+     * </ul>
+     */
     MixinConfig enableMixinRefmaps(Action<MixinConfig> action);
+
+    /**
+     * Configure Mixin setup, see {@link #enableMixinRefmaps()}
+     */
     MixinConfig getMixin();
 }
