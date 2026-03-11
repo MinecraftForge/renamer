@@ -4,15 +4,20 @@
  */
 package net.minecraftforge.renamer.gradle;
 
+import org.codehaus.groovy.runtime.InvokerHelper;
 import org.gradle.api.Action;
+import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.dsl.DependencyFactory;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.plugins.JavaPlugin;
+import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.TaskProvider;
+import org.gradle.api.tasks.bundling.Jar;
 import org.jspecify.annotations.Nullable;
 
 import javax.inject.Inject;
@@ -21,6 +26,9 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     // Renamer inputs
     final ConfigurableFileCollection mappings = getObjects().fileCollection();
 	private int dependencyCount = 0;
+	boolean defaultMixinBehavior = true;
+	MixinConfigImpl mixin = null;
+	TaskProvider<ConvertMappings> mixinMappings = null;
 
     protected abstract @Inject Project getProject();
 
@@ -121,4 +129,43 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     	});
     	return rename.map(task -> this.getProject().getDependencies().create(this.getProject().files(task)));
 	}
+
+    @Override
+    public MixinConfig getMixin() {
+    	if (this.mixin == null) {
+        	this.mixin = this.getObjects().newInstance(MixinConfigImpl.class, this);
+        	this.mixinMappings = this.convert("mixinMappings", null, "tsrg", task -> task.map(this.mappings));
+        	this.getProject().afterEvaluate(this::mixinDefaultActions);
+    	}
+    	return this.mixin;
+    }
+
+    @Override
+    public MixinConfig enableMixinRefmaps(Action<MixinConfig> action) {
+    	var ret = getMixin();
+    	action.execute(ret);
+    	return ret;
+    }
+
+    private void mixinDefaultActions(Project project) {
+    	if (!this.defaultMixinBehavior)
+    		return;
+
+    	var java = project.getExtensions().findByType(JavaPluginExtension.class);
+    	// can't do shit if this isn't java
+    	if (java == null)
+    		return;
+
+    	for (var sourceSet : java.getSourceSets())
+    		this.mixin.source(sourceSet);
+
+    	this.mixin.jar(project.getTasks().named(JavaPlugin.JAR_TASK_NAME, Jar.class));
+
+    	var minecraft = project.getExtensions().findByName("minecraft");
+    	var runs = minecraft == null ? null : (NamedDomainObjectContainer<?>)InvokerHelper.getProperty(minecraft, "runs");
+    	if (runs != null) {
+    		for (var run : runs)
+    			this.mixin.run(run);
+    	}
+    }
 }
