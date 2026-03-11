@@ -113,12 +113,12 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
         this.setMappings(configuration);
     }
 
-    public void mappings(Provider<? extends Dependency> dependency) {
-        var configuration = getProject().getConfigurations().detachedConfiguration();
-        configuration.getDependencies().addLater(dependency);
-        configuration.setTransitive(false);
+    public void mappings(Provider<?> provider) {
+    	this.getMap().setFrom(Util.toConfiguration(getProject(), provider));
+    }
 
-        this.setMappings(configuration);
+    public void mappings(TaskProvider<?> task) {
+    	this.getMap().setFrom(Util.toFile(task));
     }
 
     public void setMappings(FileCollection files) {
