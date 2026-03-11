@@ -20,7 +20,6 @@ import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.Jar;
 import org.jspecify.annotations.Nullable;
 
-import java.io.File;
 import javax.inject.Inject;
 
 abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
@@ -130,7 +129,7 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     	});
     	return rename.map(task -> this.getProject().getDependencies().create(this.getProject().files(task)));
 	}
-	
+
     @Override
     public MixinConfig getMixin() {
     	if (this.mixin == null) {
