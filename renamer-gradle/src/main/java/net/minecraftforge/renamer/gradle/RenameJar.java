@@ -56,19 +56,13 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
     protected abstract @Inject DependencyFactory getDependencyFactory();
 
     @Inject
-    public RenameJar() {
+    public RenameJar(RenamerExtensionImpl renamer) {
         super(Tools.RENAMER);
         // We don't want the default runs to log to the main task output
         this.getStandardOutputLogLevel().convention(LogLevel.INFO);
 
         // As a reminder, this is overridden by manually calling one of the #mappings methods
-        this.getMap().convention(getProviders().provider(() -> {
-            // TODO [Renamer] This assumes there's only ever one registered renamer, but i don't care for now
-            var renamer = (RenamerExtensionImpl) getProject().getExtensions().findByType(RenamerExtension.class);
-            if (renamer == null) return null;
-
-            return renamer.mappings;
-        }));
+        this.getMap().convention(getProviders().provider(() -> renamer.mappings));
 
         this.getOutput().convention(
             getObjects().fileProperty().fileProvider(getProviders().zip(this.getInput().getLocationOnly(), this.getArchiveClassifier().orElse(""), (input, classifier) -> {

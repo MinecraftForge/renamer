@@ -72,6 +72,47 @@ public interface MixinConfig extends MixinSourceSetConfig {
      */
 	MixinSourceSetConfig source(SourceSet source, String name, Action<? super MixinSourceSetConfig> action);
 
+	/**
+	 * Adds The following to the specified ForgeGradle run config:
+	 * <ul>
+	 *   <li>
+	 *     <u>Args:</u>
+	 *     <p>
+	 *     {@code "--mixin-config [config]"} - Tells Mixin to load specific configs, this is not needed if you specify hem in your Manifest file
+	 *   </li>
+	 *   <li>
+	 *     <u>System Properties:</u>
+	 *     <ul>
+	 *       <li>{@code "mixin.env.remapRefMap: true"} - Tells Mixin to remap refmaps when loading</li>
+	 *       <li>{@code "mixin.env.refMapremappingFile: [map file]"} - The mapping file used to generate the refmap</li>
+	 *     </ul>
+	 *   </li>
+	 * </ul>
+	 *
+	 * @param runConfig
+	 *
+	 */
 	void run(Object runConfig);
+
+	/**
+	 * Configures a Jar task with Mixin related values.
+	 * Specifically it adds a Manifest entry called {@code MixinConfigs} with a comma separated list of config files.
+	 * It also forces the inclusion of any refMap files for registered sourcesets
+	 *
+	 * @param provider The jar task provider
+	 *
+	 */
 	void jar(TaskProvider<Jar> provider);
+
+	/**
+	 * Gets the task that merges all generated extra mappings merged together.
+	 */
+	TaskProvider<MergeMappings> getGeneratedMappings();
+
+	/**
+	 * Gets the task that converts a mapping file into the format needed by the Annotation Processor
+	 * This can be used to customize what mappings are applied.
+	 * Defaults to converting {@link RenamerExtension#getMappings()} to {@code `tsrg`}
+	 */
+	TaskProvider<ConvertMappings> getMappings();
 }

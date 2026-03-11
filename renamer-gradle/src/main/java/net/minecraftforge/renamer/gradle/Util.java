@@ -37,6 +37,8 @@ final class Util extends SharedUtil {
     	ret.getDependencies().addLater(input.map(value -> {
     		if (value instanceof Dependency dep)
     			return dep;
+    		if (value instanceof File file)
+    			return deps.create(project.files(file));
     		return deps.create(value);
     	}));
     	return ret;

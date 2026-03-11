@@ -24,11 +24,15 @@ abstract class MixinConfigImpl implements MixinConfig {
 	private static final Logger LOGGER = LogManager.getLogger(MixinConfig.class);
 	private final RenamerExtensionImpl ext;
 	private final Map<String, MixinSourceSetConfigImpl> sourceSets = new HashMap<>();
+	private final TaskProvider<ConvertMappings> formatMappings;
+	private final TaskProvider<MergeMappings> generatedMappings;
 
 	@Inject
 	public MixinConfigImpl(RenamerExtensionImpl ext) {
 		this.ext = ext;
 		this.getMappingTypes().convention(List.of("tsrg"));
+    	this.formatMappings = ext.convert("formatMixinMappings", null, "tsrg", task -> task.map(ext.mappings));
+    	this.generatedMappings = ext.merge("mergeMixinMappings", task -> task.map(this.formatMappings));
 
 		/*
 		 * Mixin Magic:
@@ -63,6 +67,16 @@ abstract class MixinConfigImpl implements MixinConfig {
 	}
 
 	@Override
+	public TaskProvider<MergeMappings> getGeneratedMappings() {
+		return this.generatedMappings;
+	}
+
+	@Override
+	public TaskProvider<ConvertMappings> getMappings() {
+		return this.formatMappings;
+	}
+
+	@Override
 	public MixinSourceSetConfig source(SourceSet source, String name, Action<? super MixinSourceSetConfig> action) {
 		if (this.sourceSets.containsKey(source.getName()))
 			throw new IllegalStateException("Can not register the same sourceset multiple times");
@@ -85,7 +99,7 @@ abstract class MixinConfigImpl implements MixinConfig {
 			return ret;
 		}));
 		//InvokerHelper.invokeMethod(runConfig, "systemProperty", new String[]{"mixin.env.disableRefMap", "true"});
-		InvokerHelper.invokeMethod(runConfig, "systemProperties", this.ext.mixinMappings.flatMap(task -> task.getOutput()).map(
+		InvokerHelper.invokeMethod(runConfig, "systemProperties", this.generatedMappings.flatMap(task -> task.getOutput()).map(
 			file -> Map.of(
 				"mixin.env.remapRefMap", "true",
 				"mixin.env.refMapRemappingFile", file.getAsFile().getAbsolutePath()

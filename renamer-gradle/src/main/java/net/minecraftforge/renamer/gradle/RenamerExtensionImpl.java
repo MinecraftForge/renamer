@@ -27,8 +27,7 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     final ConfigurableFileCollection mappings = getObjects().fileCollection();
 	private int dependencyCount = 0;
 	boolean defaultMixinBehavior = true;
-	MixinConfigImpl mixin = null;
-	TaskProvider<ConvertMappings> mixinMappings = null;
+	private MixinConfigImpl mixin = null;
 
     protected abstract @Inject Project getProject();
 
@@ -67,11 +66,17 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
         this.mappings.setFrom(files);
     }
 
+    @Override
+    public ConfigurableFileCollection getMappings() {
+    	return this.mappings;
+    }
+
     private static final String ASSEMBLE = "assemble";
     @Override
     public TaskProvider<RenameJar> classes(String name, Action<? super RenameJar> action) {
     	var tasks = getProject().getTasks();
-        var ret = tasks.register(name, RenameJar.class, action);
+        var ret = tasks.register(name, RenameJar.class, this);
+        ret.configure(action);
 
         // Make the assemble task build our file, like the normal java plugin does
         if (tasks.getNames().contains(ASSEMBLE))
@@ -121,7 +126,8 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     	self.setTransitive(false);
     	var deps = this.getProject().getConfigurations().detachedConfiguration(dep);
     	var libraries = deps.minus(self);
-    	var rename = this.getProject().getTasks().register("_rename_dep_" + this.dependencyCount++, RenameJar.class, task -> {
+    	var rename = this.getProject().getTasks().register("_rename_dep_" + this.dependencyCount++, RenameJar.class, this);
+    	rename.configure(task -> {
     		task.getMap().setFrom(this.mappings);
     		task.getInput().set(self.getSingleFile());
     		task.getLibraries().setFrom(libraries);
@@ -134,7 +140,6 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     public MixinConfig getMixin() {
     	if (this.mixin == null) {
         	this.mixin = this.getObjects().newInstance(MixinConfigImpl.class, this);
-        	this.mixinMappings = this.convert("mixinMappings", null, "tsrg", task -> task.map(this.mappings));
         	this.getProject().afterEvaluate(this::mixinDefaultActions);
     	}
     	return this.mixin;

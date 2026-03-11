@@ -7,6 +7,7 @@ package net.minecraftforge.renamer.gradle;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 import org.gradle.api.Action;
 import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderConvertible;
@@ -35,6 +36,8 @@ public interface RenamerExtension {
     }
 
     void setMappings(FileCollection files);
+
+    ConfigurableFileCollection getMappings();
 
     default TaskProvider<RenameJar> classes(AbstractArchiveTask input) {
         return this.classes(input, it -> it.from(input));
