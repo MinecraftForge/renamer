@@ -34,7 +34,7 @@ dependencyResolutionManagement.versionCatalogs.register('libs') {
     library 'srgutils',  'net.minecraftforge', 'srgutils'       version '0.6.0'
     library 'powermock', 'org.powermock',      'powermock-core' version '2.0.9'
 
-    version 'asm', '9.7.1'
+    version 'asm', '9.9.1'
     library 'asm',         'org.ow2.asm', 'asm'         versionRef 'asm'
     library 'asm-commons', 'org.ow2.asm', 'asm-commons' versionRef 'asm'
     library 'asm-tree',    'org.ow2.asm', 'asm-tree'    versionRef 'asm'

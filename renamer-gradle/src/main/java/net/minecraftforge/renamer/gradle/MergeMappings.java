@@ -53,6 +53,10 @@ public abstract class MergeMappings extends DefaultTask implements RenamerTask {
 			// I am specifically forcing this to be a single file to go along with other tasks
 			// And because ConfigurableFileCollections use a set which is unordered and order matters
 			var file = cfg.getSingleFile();
+			// Sometimes we get files that don't exist, from Mixin bullshit
+			if (!file.exists())
+				continue;
+
 			var current = IMappingFile.load(file);
 			if (map == null)
 				map = current;
