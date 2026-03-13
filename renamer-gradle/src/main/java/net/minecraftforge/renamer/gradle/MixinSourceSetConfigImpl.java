@@ -88,7 +88,7 @@ abstract class MixinSourceSetConfigImpl implements MixinSourceSetConfig {
 			ret.add("-AreobfTsrgFile=" + mappings.get().getAsFile().getAbsolutePath());
 			ret.add("-AoutTsrgFile=" + file(ext.get("outTsrgFile")).getAbsolutePath());
 			ret.add("-AoutRefMapFile=" + file(ext.get("refMapFile")).getAbsolutePath());
-			if (config.getDisableTargetExport().getOrElse(false))
+			if (config.getDisableTargetValidator().getOrElse(false))
 				ret.add("-AdisableTargetValidator=true");
 			if (config.getDisableTargetExport().getOrElse(false))
 				ret.add("-AdisableTargetExport=true");
@@ -101,7 +101,7 @@ abstract class MixinSourceSetConfigImpl implements MixinSourceSetConfig {
 			if (config.getOverwriteErrorLevel().isPresent())
 				ret.add("-AoverwriteErrorLevel=" + config.getOverwriteErrorLevel().get().trim());
 			if (config.getDefaultObfuscationEnv().isPresent())
-				ret.add("-AdefaultObfuscationEnv=" + config.getDefaultObfuscationEnv().get());
+				ret.add("-AdefaultObfuscationEnv=" + config.getDefaultObfuscationEnv().getOrElse("searge"));
 			var mappingTypes = config.getMappingTypes().getOrElse(List.of());
 			if (!mappingTypes.isEmpty())
 				ret.add("-AmappingTypes=" + String.join(",", mappingTypes));
