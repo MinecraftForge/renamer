@@ -2,7 +2,7 @@ plugins {
     id("java")
     id("idea")
     id("eclipse")
-    id("net.minecraftforge.gradle") version "7.0.15"
+    id("net.minecraftforge.gradle") version "[7.0.15,8.0)"
     id("net.minecraftforge.renamer")
 }
 
@@ -55,7 +55,8 @@ repositories {
 }
 
 dependencies {
-    implementation(minecraft.dependency("net.minecraftforge:forge:1.20.1-47.4.16"))
+    var mcDep= minecraft.dependency("net.minecraftforge:forge:1.20.1-47.4.16")
+    implementation(mcDep)
 
     var fromSrg = renamer.convert("reverse", minecraft.dependency.toSrgFile) {
         reverse = true
@@ -64,9 +65,11 @@ dependencies {
 
     compileOnly(renamer.dependency("mezz.jei:jei-1.20.1-forge-api:15.20.0.129") {
         map.from(fromSrg)
+        libraries.from(configurations.detachedConfiguration(mcDep.asProvider().get()).resolve())
     })
     runtimeOnly(renamer.dependency("mezz.jei:jei-1.20.1-forge:15.20.0.129") {
         map.from(fromSrg)
+        libraries.from(configurations.detachedConfiguration(mcDep.asProvider().get()).resolve())
     })
 }
 
