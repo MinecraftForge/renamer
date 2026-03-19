@@ -1,0 +1,29 @@
+modLoader = "javafml"
+loaderVersion = "*"
+license = "Example"
+
+[[mods]]
+modId = "test"
+version = "1.0"
+displayName = "FG7 Obfuscation With Dependencies"
+
+[[dependencies.test]]
+modId = "forge"
+mandatory = true
+versionRange = "[46,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.test]]
+modId = "minecraft"
+mandatory = true
+versionRange = "[1.20.1]"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.test]]
+modId = "jei"
+mandatory = true
+versionRange = "[15.20.0.129]"
+ordering = "AFTER"
+side = "BOTH"
