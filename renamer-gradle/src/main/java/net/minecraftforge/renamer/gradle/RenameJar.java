@@ -43,19 +43,16 @@ import java.util.Set;
 @CacheableTask
 public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements RenamerTask, PublishArtifact {
     public abstract @InputFile @PathSensitive(PathSensitivity.RELATIVE) RegularFileProperty getInput();
-
     public abstract @InputFiles @Classpath ConfigurableFileCollection getMap();
+    public abstract @InputFiles @Optional @CompileClasspath ConfigurableFileCollection getLibraries();
+    public abstract @Input @Optional Property<String> getArchiveClassifier();
+    public abstract @Input Property<String> getArchiveExtension();
+    public abstract @Input Property<Boolean> getReverse();
+    public abstract @Input Property<Boolean> getNaiveSrg();
 
     public abstract @OutputFile RegularFileProperty getOutput();
 
-    public abstract @InputFiles @Optional @CompileClasspath ConfigurableFileCollection getLibraries();
-
-    public abstract @Input @Optional Property<String> getArchiveClassifier();
-
-    public abstract @Input Property<String> getArchiveExtension();
-
     protected abstract @Internal Property<Date> getArchiveDate();
-
     protected abstract @Inject DependencyFactory getDependencyFactory();
 
     @Inject
@@ -84,6 +81,11 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
                     if (name.equals(file.getName()))
                         name = inputName + '-' + classifier + "-renamed" + ext;
                 }
+                var parent = file.getParentFile();
+                var projectDir = this.getProject().getLayout().getProjectDirectory().getAsFile().getAbsolutePath();
+                // the file isn't in our project, which could cause inter-project issues. So pick a spot in our project
+                if (!parent.getAbsolutePath().startsWith(projectDir))
+                	return this.localCaches().file(String.format("renamed/%s", name)).get().getAsFile();
                 return new File(file.getParentFile(), name);
             })).orElse(this.getDefaultOutputFile())
         );
@@ -91,6 +93,8 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
 
         this.getArchiveExtension().convention("jar");
         this.getArchiveDate().convention(this.getInput().map(input -> new Date(input.getAsFile().lastModified())));
+        this.getReverse().convention(false);
+        this.getNaiveSrg().convention(false);
     }
 
     @Override
@@ -138,6 +142,12 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
         this.args("--map", this.getMapFile());
         this.args("--output", this.getOutput());
         this.args("--lib", this.getLibraries());
+
+        if (this.getReverse().getOrElse(false))
+        	this.args("--reverse");
+
+        if (this.getNaiveSrg().getOrElse(false))
+        	this.args("--naive-srg");
 
         super.addArguments();
     }
