@@ -22,13 +22,15 @@ import net.minecraftforge.renamer.api.ClassProvider.IClassInfo;
 import net.minecraftforge.renamer.api.ClassProvider.IFieldInfo;
 import net.minecraftforge.renamer.api.ClassProvider.IMethodInfo;
 import net.minecraftforge.srgutils.IMappingFile;
+import net.minecraftforge.srgutils.IMappingFile.IField;
+import net.minecraftforge.srgutils.IMappingFile.IMethod;
 
 import static org.objectweb.asm.Opcodes.*;
 
 class EnhancedRemapper extends Remapper {
     private final ClassProvider classProvider;
     private final IMappingFile map;
-    private final Map<String, Optional<MClass>> resolved = new ConcurrentHashMap<>();
+    private final Map<String, Optional<MetaClass>> resolved = new ConcurrentHashMap<>();
     private final Consumer<String> log;
 
     public EnhancedRemapper(ClassProvider classProvider, IMappingFile map, Consumer<String> log) {
@@ -37,18 +39,23 @@ class EnhancedRemapper extends Remapper {
         this.log = log;
     }
 
-    @Override public String mapModuleName(final String name) { return name; } // TODO? None of the mapping formats support this.
+    // TODO: [Renamer] None of the mapping formats support renaming modules currently.
+    @Override
+    public String mapModuleName(final String name) {
+    	return name;
+	}
+
     @Override
     public String mapAnnotationAttributeName(final String descriptor, final String name) {
         Type type = Type.getType(descriptor);
         if (type.getSort() != Type.OBJECT)
             return name;
 
-        MClass cls = getClass(type.getInternalName()).orElse(null);
+        MetaClass cls = getClass(type.getInternalName()).orElse(null);
         if (cls == null)
             return name;
 
-        List<MClass.MMethod> lst = cls.getMethods(name).orElse(null);
+        List<MetaMethod> lst = cls.getMethods(name).orElse(null);
         if (lst == null)
             return name;
 
@@ -56,7 +63,7 @@ class EnhancedRemapper extends Remapper {
         // As annotation attributes can't have parameters, and the bytecode doesn't store the descriptor
         // But renamers can be weird so log instead of doing weird things.
         if (lst.size() != 1) {
-            for (MClass.MMethod mtd : lst)
+            for (MetaMethod mtd : lst)
                 log.accept("Duplicate Annotation name: " + cls.getName() + " " + mtd.getName() + mtd.getDescriptor() + " -> " + cls.getMapped() + " " + mtd.getName());
             return name;
         }
@@ -64,14 +71,19 @@ class EnhancedRemapper extends Remapper {
         return lst.get(0).getMapped();
     }
 
-    @Override public String mapInvokeDynamicMethodName(final String name, final String descriptor) { return name; } // TODO: Lookup how the JVM resolves this and attempt to resolve it to get the owner?
+    // TODO: [Renamer] Lookup how the JVM resolves InvokeDynamics and attempt to resolve it to get the owner?
+    @Override
+    public String mapInvokeDynamicMethodName(final String name, final String descriptor) {
+    	return name;
+	}
 
     @Override
     public String mapMethodName(final String owner, final String name, final String descriptor) {
-        return getClass(owner)
-            .flatMap(c -> c.getMethod(name, descriptor))
-            .map(MClass.MMethod::getMapped)
-            .orElse(name);
+    	MetaClass cls = getClass(owner).orElse(null);
+    	if (cls == null)
+    		return name;
+    	MetaMethod mtd = cls.getMethod(name, descriptor).orElse(null);
+    	return mtd == null ? name : mtd.getMapped();
     }
 
     @Override // We'll treat this like fields for now, tho at the bytecode level I have no idea what this references
@@ -81,10 +93,11 @@ class EnhancedRemapper extends Remapper {
 
     @Override
     public String mapFieldName(final String owner, final String name, final String descriptor) {
-        return getClass(owner)
-            .flatMap(c -> c.getField(name, descriptor))
-            .map(MClass.MField::getMapped)
-            .orElse(name);
+    	MetaClass cls = getClass(owner).orElse(null);
+    	if (cls == null)
+    		return name;
+    	MetaField fld = cls.getField(name, descriptor).orElse(null);
+    	return fld == null ? name : fld.getMapped();
     }
 
     @Override
@@ -94,20 +107,22 @@ class EnhancedRemapper extends Remapper {
 
     @Override
     public String map(final String name) {
-        return getClass(name).map(MClass::getMapped).orElse(map.remapClass(name));
+    	MetaClass cls = getClass(name).orElse(null);
+    	return cls == null ? map.remapClass(name) : cls.getMapped();
     }
 
     public String mapParameterName(final String owner, final String methodName, final String methodDescriptor, final int index, final String paramName) {
-        return getClass(owner)
-            .flatMap(c -> c.getMethod(methodName, methodDescriptor))
-            .map(m -> m.mapParameter(index, paramName))
-            .orElse(paramName);
+    	MetaClass cls = getClass(owner).orElse(null);
+    	if (cls == null)
+    		return paramName;
+    	MetaMethod mtd = cls.getMethod(methodName, methodDescriptor).orElse(null);
+    	return mtd == null ? paramName : mtd.mapParameter(index, paramName);
     }
 
-    private Optional<MClass> getClass(String cls) {
+    private Optional<MetaClass> getClass(String cls) {
         if (cls == null || cls.charAt(0) == '[') // Enums values() function invokes 'clone' on the array type.
             return Optional.empty();             // I'm pretty sure that i'd require stupid hacky JVM to allow native array methods to be remapped.
-        Optional<MClass> ret = resolved.get(cls);
+        Optional<MetaClass> ret = resolved.get(cls);
         if (ret == null) {
             synchronized(cls.intern()) {
                 ret = resolved.get(cls);
@@ -128,57 +143,73 @@ class EnhancedRemapper extends Remapper {
         return this.map;
     }
 
-    private Optional<MClass> computeClass(String cls) {
-        Optional<? extends IClassInfo> icls = this.getClassProvider().getClass(cls);
-        IMappingFile.IClass mcls = this.map.getClass(cls);
-        if (!icls.isPresent() && mcls == null)
+    private Optional<MetaClass> computeClass(String cls) {
+        IClassInfo binaryClass = this.getClassProvider().getClass(cls).orElse(null);
+        IMappingFile.IClass mapClass = this.map.getClass(cls);
+        if (binaryClass == null && mapClass == null)
             return Optional.empty();
-        return Optional.of(new MClass(icls.orElse(null), mcls));
+        return Optional.of(new MetaClass(binaryClass, mapClass));
     }
 
-    private class MClass {
-        private final IClassInfo icls;
-        private final IMappingFile.IClass mcls;
+    private class MetaClass {
+        private final IClassInfo binaryClass;
+        private final IMappingFile.IClass mapClass;
         private final String mappedName;
-        private final List<MClass> parents;
-        private final Map<String, Optional<MField>> fields = new ConcurrentHashMap<>();
-        private final Collection<Optional<MField>> fieldsView = Collections.unmodifiableCollection(fields.values());
-        private final Map<String, Optional<MMethod>> methods = new ConcurrentHashMap<>();
-        private final Collection<Optional<MMethod>> methodsView = Collections.unmodifiableCollection(methods.values());
-        private final Map<String, Optional<List<MMethod>>> methodsByName = new ConcurrentHashMap<>();
+        private final List<MetaClass> parents;
+        private final Map<String, Optional<MetaField>> fields = new ConcurrentHashMap<>();
+        private final Collection<Optional<MetaField>> fieldsView = Collections.unmodifiableCollection(fields.values());
+        private final Map<String, Optional<MetaMethod>> methods = new ConcurrentHashMap<>();
+        private final Collection<Optional<MetaMethod>> methodsView = Collections.unmodifiableCollection(methods.values());
+        private final Map<String, Optional<List<MetaMethod>>> methodsByName = new ConcurrentHashMap<>();
 
-        MClass(IClassInfo icls, IMappingFile.IClass mcls) {
-            if (icls == null && mcls == null)
+        MetaClass(IClassInfo binaryClass, IMappingFile.IClass mapClass) {
+            if (binaryClass == null && mapClass == null)
                 throw new IllegalArgumentException("Can't pass in both nulls..");
 
-            this.icls = icls;
-            this.mcls = mcls;
-            this.mappedName = mcls == null ? EnhancedRemapper.this.getMap().remapClass(icls.getName()) : mcls.getMapped();
+            this.binaryClass = binaryClass;
+            this.mapClass = mapClass;
+            this.mappedName = mapClass == null ? EnhancedRemapper.this.getMap().remapClass(binaryClass.getName()) : mapClass.getMapped();
 
-            if (icls != null) {
-                List<MClass> parents = new ArrayList<>();
-                EnhancedRemapper.this.getClass(icls.getSuper()).ifPresent(parents::add);
-                icls.getInterfaces().stream().map(EnhancedRemapper.this::getClass).forEach(o -> o.ifPresent(parents::add));
+            if (binaryClass != null) {
+                List<MetaClass> parents = new ArrayList<>();
+                EnhancedRemapper.this.getClass(binaryClass.getSuper()).ifPresent(parents::add);
+                for (String intf : binaryClass.getInterfaces()) {
+                	MetaClass metaClass = EnhancedRemapper.this.getClass(intf).orElse(null);
+                	if (metaClass != null)
+                		parents.add(metaClass);
+                }
                 this.parents = Collections.unmodifiableList(parents);
 
-                icls.getFields().stream().map(f -> new MField(f, mcls == null ? null : mcls.getField(f.getName())))
-                    .forEach(f -> fields.put(f.getKey(), Optional.of(f)));
+                for (IFieldInfo binaryField : binaryClass.getFields()) {
+                	IField mapField = mapClass == null ? null : mapClass.getField(binaryField.getName());
+                	MetaField metaField = new MetaField(this, binaryField, mapField);
+                	fields.put(metaField.getKey(), Optional.of(metaField));
+                }
 
-                icls.getMethods().stream().map(m -> new MMethod(m, mcls == null ? null : mcls.getMethod(m.getName(), m.getDescriptor())))
-                    .forEach(m -> methods.put(m.getKey(), Optional.of(m)));
+                for (IMethodInfo binaryMethod : binaryClass.getMethods()) {
+                	IMethod mapMethod = mapClass == null ? null : mapClass.getMethod(binaryMethod.getName(), binaryMethod.getDescriptor());
+                	MetaMethod metaMethod = new MetaMethod(this, binaryMethod, mapMethod);
+                	methods.put(metaMethod.getKey(), Optional.of(metaMethod));
+                }
             } else {
                 this.parents = Collections.emptyList();
-                mcls.getFields().stream().map(f -> new MField(null, f)).forEach(f -> fields.put(f.getKey(), Optional.of(f)));
-                mcls.getMethods().stream().map(m -> new MMethod(null, m)).forEach(m -> methods.put(m.getKey(), Optional.of(m)));
+                for (IField mapField : mapClass.getFields()) {
+                	MetaField metaField = new MetaField(this, null, mapField);
+                	fields.put(metaField.getKey(), Optional.of(metaField));
+                }
+                for (IMethod mapMethod : mapClass.getMethods()) {
+                	MetaMethod metaMethod = new MetaMethod(this, null, mapMethod);
+                	methods.put(metaMethod.getKey(), Optional.of(metaMethod));
+                }
             }
 
-            for (MClass parentCls : parents) {
-                for (Optional<MField> fldOpt : parentCls.getFields()) {
+            for (MetaClass parentCls : parents) {
+                for (Optional<MetaField> fldOpt : parentCls.getFields()) {
                     if (!fldOpt.isPresent())
                         continue;
 
-                    MField fld = fldOpt.get();
-                    Optional<MField> existing = this.fields.get(fld.getKey());
+                    MetaField fld = fldOpt.get();
+                    Optional<MetaField> existing = this.fields.get(fld.getKey());
                     if (existing == null || !existing.isPresent()) {
                         /* There are some weird cases where a field will be referenced as if it were owned by the current class,
                          * but it needs a field from the parent. So lets follow the linking spec and pull
@@ -198,11 +229,11 @@ class EnhancedRemapper extends Remapper {
                     }
                 }
 
-                for (Optional<MMethod> mtdOpt : parentCls.getMethods()) {
+                for (Optional<MetaMethod> mtdOpt : parentCls.getMethods()) {
                     if (!mtdOpt.isPresent())
                         continue;
 
-                    MMethod mtd = mtdOpt.get();
+                    MetaMethod mtd = mtdOpt.get();
                     /* https://docs.oracle.com/javase/specs/jvms/se16/html/jvms-5.html#jvms-5.4.3.3
                      * According to the spec, it does not check access on super classes, but it checks
                      * on interfaces if it is not ACC_PRIVATE or ACC_STATIC.
@@ -231,7 +262,7 @@ class EnhancedRemapper extends Remapper {
                         continue;
 
 
-                    Optional<MMethod> existingOpt = this.methods.get(mtd.getKey());
+                    Optional<MetaMethod> existingOpt = this.methods.get(mtd.getKey());
                     if (existingOpt == null || !existingOpt.isPresent()) {
                         /* If there is none existing, then we pull in what we have found from the parents.
                          * This intentionally uses the same object as the parents so that if we have weird edge
@@ -258,7 +289,7 @@ class EnhancedRemapper extends Remapper {
                          *   class C extends A implements B {}
                          *   MD: B/foo()V B/bar()V
                          */
-                        MMethod existing = existingOpt.get();
+                        MetaMethod existing = existingOpt.get();
                         if (!existing.hasMapping() && !existing.getName().equals(mtd.getMapped())) {
                             if (!existing.getMapped().equals(mtd.getMapped()))
                                 log.accept("Conflicting propagated mapping for " + existing + " from " + mtd + ": " + existing.getMapped() + " -> " + mtd.getMapped());
@@ -291,7 +322,7 @@ class EnhancedRemapper extends Remapper {
         }
 
         public String getName() {
-            return this.icls != null ? this.icls.getName() : this.mcls.getOriginal();
+            return this.binaryClass != null ? this.binaryClass.getName() : this.mapClass.getOriginal();
         }
 
         public String getMapped() {
@@ -299,24 +330,24 @@ class EnhancedRemapper extends Remapper {
         }
 
         public int getAccess() {
-            if (this.icls == null)
+            if (this.binaryClass == null)
                 return ACC_PRIVATE;
-            return this.icls.getAccess();
+            return this.binaryClass.getAccess();
         }
 
         public boolean isInterface() {
             return (getAccess() & ACC_INTERFACE) != 0;
         }
 
-        public Collection<Optional<MField>> getFields() {
+        public Collection<Optional<MetaField>> getFields() {
             return this.fieldsView;
         }
 
-        public Optional<MField> getField(String name, @Nullable String desc) {
+        public Optional<MetaField> getField(String name, @Nullable String desc) {
             if (desc == null) {
                 return this.fields.computeIfAbsent(name, k -> Optional.empty());
             } else {
-                Optional<MField> ret = this.fields.get(name + desc);
+                Optional<MetaField> ret = this.fields.get(name + desc);
                 if (ret == null) {
                     ret = getField(name, null);
                     this.fields.put(name + desc, ret);
@@ -325,24 +356,24 @@ class EnhancedRemapper extends Remapper {
             }
         }
 
-        public Collection<Optional<MMethod>> getMethods() {
+        public Collection<Optional<MetaMethod>> getMethods() {
             return this.methodsView;
         }
 
-        public Optional<MMethod> getMethod(String name, String desc) {
+        public Optional<MetaMethod> getMethod(String name, String desc) {
             return this.methods.computeIfAbsent(name + desc, k -> Optional.empty());
         }
 
-        Optional<List<MMethod>> getMethods(String name) {
+        Optional<List<MetaMethod>> getMethods(String name) {
             return this.methodsByName.computeIfAbsent(name, k -> {
-                List<MMethod> mtds = new ArrayList<>();
-                for (Optional<MMethod> opt : this.getMethods()) {
-                    MMethod mtd = opt.orElse(null);
+                List<MetaMethod> mtds = new ArrayList<>();
+                for (Optional<MetaMethod> opt : this.getMethods()) {
+                    MetaMethod mtd = opt.orElse(null);
                     if (mtd == null || !k.equals(mtd.getName()))
                         continue;
                     mtds.add(mtd);
                 }
-                return mtds.isEmpty() ? Optional.<List<MMethod>>empty() : Optional.of(mtds);
+                return mtds.isEmpty() ? Optional.<List<MetaMethod>>empty() : Optional.of(mtds);
             });
         }
 
@@ -350,114 +381,123 @@ class EnhancedRemapper extends Remapper {
         public String toString() {
             return getName();
         }
+    }
 
-        public class MField {
-            private final IFieldInfo ifld;
-            private final IMappingFile.IField mfld;
-            private final String mappedName;
-            private final String key;
+    private static class MetaField {
+    	private final MetaClass owner;
+        private final IFieldInfo binary;
+        private final IMappingFile.IField map;
+        private final String mappedName;
+        private final String key;
 
-            MField(IFieldInfo ifld, IMappingFile.IField mfld) {
-                this.ifld = ifld;
-                this.mfld = mfld;
-                this.mappedName = mfld == null ? ifld.getName() : mfld.getMapped();
-                this.key = getDescriptor() == null ? getName() : getName() + getDescriptor();
-            }
-
-            public String getName() {
-                return this.ifld != null ? this.ifld.getName() : this.mfld.getOriginal();
-            }
-
-            public String getDescriptor() {
-                return this.ifld != null ? this.ifld.getDescriptor() : this.mfld.getDescriptor();
-            }
-
-            public String getMapped() {
-                return this.mappedName;
-            }
-
-            public String getKey() {
-                return this.key;
-            }
-
-            @Override
-            public String toString() {
-                return MClass.this.getName() + '/' + getName() + ' ' + getDescriptor();
-            }
+        MetaField(MetaClass owner, IFieldInfo binary, IMappingFile.IField field) {
+        	this.owner = owner;
+            this.binary = binary;
+            this.map = field;
+            this.mappedName = field == null ? binary.getName() : field.getMapped();
+            this.key = getDescriptor() == null ? getName() : getName() + getDescriptor();
         }
 
-        public class MMethod {
-            private final IMethodInfo imtd;
-            private final IMappingFile.IMethod mmtd;
-            private String mappedName;
-            private final String[] params;
-            private final String key;
+        public String getName() {
+            return this.binary != null ? this.binary.getName() : this.map.getOriginal();
+        }
 
-            MMethod(IMethodInfo imtd, IMappingFile.IMethod mmtd) {
-                this.imtd = imtd;
-                this.mmtd = mmtd;
-                if (mmtd != null && !mmtd.getDescriptor().contains("()")) {
-                    List<String> tmp = new ArrayList<>();
-                    if ((imtd.getAccess() & ACC_STATIC) == 0)
-                        tmp.add("this");
+        public String getDescriptor() {
+            return this.binary != null ? this.binary.getDescriptor() : this.map.getDescriptor();
+        }
 
-                    Type[] args = Type.getArgumentTypes(mmtd.getDescriptor());
-                    for (int x = 0; x < args.length; x++) {
-                        String name = mmtd.remapParameter(x, null);
+        public String getMapped() {
+            return this.mappedName;
+        }
+
+        public String getKey() {
+            return this.key;
+        }
+
+        @Override
+        public String toString() {
+            return this.owner.getName() + '/' + getName() + ' ' + getDescriptor();
+        }
+    }
+
+    private class MetaMethod {
+    	private final MetaClass owner;
+        private final IMethodInfo binary;
+        private final IMappingFile.IMethod map;
+        private String mappedName;
+        private final String[] params;
+        private final String key;
+        private final boolean isStatic;
+
+        MetaMethod(MetaClass owner, IMethodInfo binary, IMappingFile.IMethod map) {
+        	this.owner = owner;
+            this.binary = binary;
+            this.map = map;
+            this.isStatic =
+            	(binary != null && (binary.getAccess() & ACC_STATIC) == ACC_STATIC) ||
+        		(map != null && map.getMetadata().containsKey("is_static"));
+
+            if (map != null && !map.getDescriptor().contains("()")) {
+                List<String> tmp = new ArrayList<>();
+            	if (!this.isStatic)
+                    tmp.add("this");
+
+                Type[] args = Type.getArgumentTypes(map.getDescriptor());
+                for (int x = 0; x < args.length; x++) {
+                    String name = map.remapParameter(x, null);
+                    tmp.add(name);
+                    if (args[x].getSize() == 2)
                         tmp.add(name);
-                        if (args[x].getSize() == 2)
-                            tmp.add(name);
-                    }
-
-                    this.params = tmp.toArray(new String[tmp.size()]);
-                } else {
-                    this.params = null;
                 }
-                this.key = getName() + getDescriptor();
-            }
 
-            public String getName() {
-                return this.imtd != null ? this.imtd.getName() : this.mmtd.getOriginal();
+                this.params = tmp.toArray(new String[tmp.size()]);
+            } else {
+                this.params = null;
             }
+            this.key = getName() + getDescriptor();
+        }
 
-            public String getDescriptor() {
-                return this.imtd != null ? this.imtd.getDescriptor() : this.mmtd.getDescriptor();
-            }
+        public String getName() {
+            return this.binary != null ? this.binary.getName() : this.map.getOriginal();
+        }
 
-            public String getMapped() {
-                return mappedName == null ? mmtd == null ? getName() : mmtd.getMapped() : mappedName;
-            }
+        public String getDescriptor() {
+            return this.binary != null ? this.binary.getDescriptor() : this.map.getDescriptor();
+        }
 
-            public String getKey() {
-                return this.key;
-            }
+        public String getMapped() {
+            return mappedName == null ? map == null ? getName() : map.getMapped() : mappedName;
+        }
 
-            public void setMapped(String name) {
-                this.mappedName = name;
-            }
+        public String getKey() {
+            return this.key;
+        }
 
-            public boolean hasMapping() {
-                return this.mmtd != null;
-            }
+        public void setMapped(String name) {
+            this.mappedName = name;
+        }
 
-            public int getAccess() {
-                if (this.imtd == null)
-                    return ACC_PRIVATE;
-                return this.imtd.getAccess();
-            }
+        public boolean hasMapping() {
+            return this.map != null;
+        }
 
-            public boolean isInterfaceInheritable() {
-                return (getAccess() & (ACC_PRIVATE | ACC_STATIC)) == 0;
-            }
+        public int getAccess() {
+            if (this.binary == null)
+                return ACC_PRIVATE;
+            return this.binary.getAccess();
+        }
 
-            public String mapParameter(int index, String name) {
-                return this.params != null && index >= 0 && index < this.params.length ? this.params[index] : name;
-            }
+        public boolean isInterfaceInheritable() {
+            return isStatic || (getAccess() & (ACC_PRIVATE | ACC_STATIC)) == 0;
+        }
 
-            @Override
-            public String toString() {
-                return MClass.this.getName() + '/' + getName() + getDescriptor();
-            }
+        public String mapParameter(int index, String name) {
+            return this.params != null && index >= 0 && index < this.params.length ? this.params[index] : name;
+        }
+
+        @Override
+        public String toString() {
+            return this.owner.getName() + '/' + getName() + getDescriptor();
         }
     }
 }
