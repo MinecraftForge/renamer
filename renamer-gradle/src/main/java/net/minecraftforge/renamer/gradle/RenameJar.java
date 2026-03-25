@@ -27,13 +27,16 @@ import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.TaskDependency;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
+import org.gradle.process.ExecResult;
 import org.jspecify.annotations.Nullable;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.Set;
 
@@ -72,10 +75,14 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
                     int idx = file.getName().lastIndexOf('.');
                     var inputName = file.getName().substring(0, idx);
                     var ext = file.getName().substring(idx);
+
+                    if (classifier.isEmpty())
+                    	classifier = "renamed";
+
                     name = inputName + '-' + classifier + ext;
 
                     if (name.equals(file.getName()))
-                        name = inputName + classifier + "-renamed" + ext;
+                        name = inputName + '-' + classifier + "-renamed" + ext;
                 }
                 return new File(file.getParentFile(), name);
             })).orElse(this.getDefaultOutputFile())
@@ -84,6 +91,12 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
 
         this.getArchiveExtension().convention("jar");
         this.getArchiveDate().convention(this.getInput().map(input -> new Date(input.getAsFile().lastModified())));
+    }
+
+    @Override
+    @TaskAction
+    protected ExecResult exec() throws IOException {
+    	return super.exec().assertNormalExitValue().rethrowFailure();
     }
 
     public void from(AbstractArchiveTask task) {
