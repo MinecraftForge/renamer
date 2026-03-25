@@ -7,11 +7,14 @@ package net.minecraftforge.renamer.internal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Type;
@@ -24,19 +27,39 @@ import net.minecraftforge.renamer.api.ClassProvider.IMethodInfo;
 import net.minecraftforge.srgutils.IMappingFile;
 import net.minecraftforge.srgutils.IMappingFile.IField;
 import net.minecraftforge.srgutils.IMappingFile.IMethod;
+import net.minecraftforge.srgutils.IMappingFile.INode;
+import net.minecraftforge.srgutils.IMappingFile.IParameter;
+import net.minecraftforge.srgutils.IRenamer;
 
 import static org.objectweb.asm.Opcodes.*;
 
 class EnhancedRemapper extends Remapper {
+	private static final Predicate<String> SRG_PATTERN = Pattern.compile("^(?:[fF]unc_\\d+_[a-zA-Z_]+|m_\\d+_|[fF]ield_\\d+_[a-zA-Z_]+|f_\\d+_|p_\\w+_\\d+_|p_\\d+_)$").asPredicate();
     private final ClassProvider classProvider;
     private final IMappingFile map;
+    private final Map<String, String> naiveSrgMap;
     private final Map<String, Optional<MetaClass>> resolved = new ConcurrentHashMap<>();
     private final Consumer<String> log;
 
-    public EnhancedRemapper(ClassProvider classProvider, IMappingFile map, Consumer<String> log) {
+    EnhancedRemapper(ClassProvider classProvider, IMappingFile map, Consumer<String> log, boolean naiveSrg) {
         this.classProvider = classProvider;
         this.map = map;
         this.log = log;
+        if (naiveSrg) {
+        	this.naiveSrgMap = new HashMap<>();
+        	map.rename(new IRenamer() {
+        		@Override public String rename(IField value) { return capture(value); }
+        		@Override public String rename(IMethod value) { return capture(value); }
+        		@Override public String rename(IParameter value) { return capture(value); }
+        		private String capture(INode value) {
+        			if (SRG_PATTERN.test(value.getOriginal()))
+        				naiveSrgMap.put(value.getOriginal(), value.getMapped());
+        			return value.getMapped();
+        		}
+        	});
+        } else {
+        	this.naiveSrgMap = null;
+        }
     }
 
     // TODO: [Renamer] None of the mapping formats support renaming modules currently.
@@ -71,19 +94,23 @@ class EnhancedRemapper extends Remapper {
         return lst.get(0).getMapped();
     }
 
+    private final String naive(String value) {
+    	return this.naiveSrgMap == null ? value : this.naiveSrgMap.getOrDefault(value, value);
+    }
+
     // TODO: [Renamer] Lookup how the JVM resolves InvokeDynamics and attempt to resolve it to get the owner?
     @Override
     public String mapInvokeDynamicMethodName(final String name, final String descriptor) {
-    	return name;
+    	return naive(name);
 	}
 
     @Override
     public String mapMethodName(final String owner, final String name, final String descriptor) {
     	MetaClass cls = getClass(owner).orElse(null);
     	if (cls == null)
-    		return name;
+    		return naive(name);
     	MetaMethod mtd = cls.getMethod(name, descriptor).orElse(null);
-    	return mtd == null ? name : mtd.getMapped();
+    	return mtd == null ? naive(name) : mtd.getMapped();
     }
 
     @Override // We'll treat this like fields for now, tho at the bytecode level I have no idea what this references
@@ -95,9 +122,9 @@ class EnhancedRemapper extends Remapper {
     public String mapFieldName(final String owner, final String name, final String descriptor) {
     	MetaClass cls = getClass(owner).orElse(null);
     	if (cls == null)
-    		return name;
+    		return naive(name);
     	MetaField fld = cls.getField(name, descriptor).orElse(null);
-    	return fld == null ? name : fld.getMapped();
+    	return fld == null ? naive(name) : fld.getMapped();
     }
 
     @Override
@@ -114,9 +141,9 @@ class EnhancedRemapper extends Remapper {
     public String mapParameterName(final String owner, final String methodName, final String methodDescriptor, final int index, final String paramName) {
     	MetaClass cls = getClass(owner).orElse(null);
     	if (cls == null)
-    		return paramName;
+    		return naive(paramName);
     	MetaMethod mtd = cls.getMethod(methodName, methodDescriptor).orElse(null);
-    	return mtd == null ? paramName : mtd.mapParameter(index, paramName);
+    	return mtd == null ? naive(paramName) : mtd.mapParameter(index, paramName);
     }
 
     private Optional<MetaClass> getClass(String cls) {

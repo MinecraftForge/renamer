@@ -98,6 +98,9 @@ publishing {
     }
 
     publications.register('mavenJava', MavenPublication) {
+        changelog.publish(it)
+        gradleutils.promote(it)
+
         suppressAllPomMetadataWarnings()
         from components.java
 

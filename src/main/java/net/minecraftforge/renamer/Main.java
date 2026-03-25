@@ -75,6 +75,7 @@ public class Main {
         OptionSpec<File> ffLinesO = parser.accepts("ff-line-numbers", "Applies line number corrections from Fernflower.").withRequiredArg().ofType(File.class);
         OptionSpec<Void> reverseO = parser.accepts("reverse", "Reverse provided mapping file before applying");
         OptionSpec<Void> disableAbstractParam = parser.accepts("disable-abstract-param", "Disables collection of names of parameters of abstract methods for FernFlower");
+        OptionSpec<Void> naiveSrgO = parser.accepts("naive-srg", "Attempts to rename names that match SRG names when inheretence fails. Allows for Mappings mods SRG->Named without all dependencies").availableIf(mapO);
         OptionSpec<Void> helpO = parser.accepts("help", "Prints help and exits").forHelp();
 
         OptionSet options;
@@ -140,13 +141,17 @@ public class Main {
         // This does mean that it's not strictly a 'renaming' tool but screw it I like the name.
         if (options.has(mapO)) {
             File mapF = options.valueOf(mapO);
-            log.accept("Names: " + mapF.getAbsolutePath() + "(reversed: " + options.has(reverseO) + ")");
+            boolean reverse = options.has(reverseO);
+            boolean collectAbstractParams = !options.has(disableAbstractParam);
+            boolean naiveSrg = options.has(naiveSrgO);
+
+            log.accept("Names: " + mapF.getAbsolutePath() + "(reversed: " + reverse + ", collectAbstract: " + collectAbstractParams + ", naiveSrg: " + naiveSrg + ")");
             IMappingFile mappings = IMappingFile.load(mapF);
             if (options.has(reverseO)) {
                 mappings = mappings.reverse();
             }
 
-            builder.add(Transformer.renamerFactory(mappings, !options.has(disableAbstractParam)));
+            builder.add(Transformer.renamerFactory(mappings, collectAbstractParams, naiveSrg));
         } else {
             log.accept("Names: null");
         }

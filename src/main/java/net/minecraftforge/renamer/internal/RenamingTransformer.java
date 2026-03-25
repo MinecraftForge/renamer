@@ -31,8 +31,12 @@ public class RenamingTransformer implements Transformer {
     }
 
     public RenamingTransformer(ClassProvider classProvider, IMappingFile map, Consumer<String> log, boolean collectAbstractParams) {
+    	this(classProvider, map, log, collectAbstractParams, false);
+    }
+
+    public RenamingTransformer(ClassProvider classProvider, IMappingFile map, Consumer<String> log, boolean collectAbstractParams, boolean naiveSrg) {
         this.collectAbstractParams = collectAbstractParams;
-        this.remapper = new EnhancedRemapper(classProvider, map, log);
+        this.remapper = new EnhancedRemapper(classProvider, map, log, naiveSrg);
     }
 
     @Override

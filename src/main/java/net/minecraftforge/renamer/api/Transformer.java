@@ -70,10 +70,22 @@ public interface Transformer {
      *
      * @param map the mapping information to remap with
      * @param collectAbstractParams whether to collect abstract parameter names for FernFlower
+     * @param naiveSrg Whether to enable 'naive' SRG renames, which will use simple word replacement for SRG names.
+     * @return a factory for a renaming transformer
+     */
+    static Factory renamerFactory(IMappingFile map, boolean collectAbstractParams, boolean naiveSrg) {
+        return ctx -> new RenamingTransformer(ctx.getClassProvider(), map, ctx.getLog(), collectAbstractParams, naiveSrg);
+    }
+
+    /**
+     * Create a transformer that applies mappings as a transformation.
+     *
+     * @param map the mapping information to remap with
+     * @param collectAbstractParams whether to collect abstract parameter names for FernFlower
      * @return a factory for a renaming transformer
      */
     static Factory renamerFactory(IMappingFile map, boolean collectAbstractParams) {
-        return ctx -> new RenamingTransformer(ctx.getClassProvider(), map, ctx.getLog(), collectAbstractParams);
+    	return renamerFactory(map, collectAbstractParams, false);
     }
 
     /**
@@ -81,10 +93,7 @@ public interface Transformer {
      *
      * @param map the mapping information to remap with
      * @return a factory for a renaming transformer
-     *
-     * @deprecated use {@link #renamerFactory(IMappingFile, boolean)} insteead
      */
-    @Deprecated
     static Factory renamerFactory(IMappingFile map) {
         return renamerFactory(map, true);
     }
