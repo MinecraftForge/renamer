@@ -11,6 +11,7 @@ import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderConvertible;
+import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 
@@ -39,6 +40,7 @@ public interface RenamerExtension {
 
     ConfigurableFileCollection getMappings();
 
+    // region Bytecode Renaming
     default TaskProvider<RenameJar> classes(AbstractArchiveTask input) {
         return this.classes(input, it -> it.from(input));
     }
@@ -66,8 +68,40 @@ public interface RenamerExtension {
     }
 
     TaskProvider<RenameJar> classes(String name, TaskProvider<? extends AbstractArchiveTask> input, Action<? super RenameJar> action);
+    // endregion
 
+    // region Source Renaming
+    default RenameSources sources(SourceSet input) {
+    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
+    }
+    default RenameSources sources(SourceSet input, Action<? super RenameSources> action) {
+    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
+    }
+    default RenameSources sources(String name, SourceSet input, Action<? super RenameSources> action) {
+    	return this.sources(name, it -> { it.from(input); action.execute(it); });
+    }
+    default RenameSources sources(AbstractArchiveTask input) {
+    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
+    }
+    default RenameSources sources(AbstractArchiveTask input, Action<? super RenameSources> action) {
+    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
+    }
+    default RenameSources sources(String name, AbstractArchiveTask input, Action<? super RenameSources> action) {
+    	return this.sources(name, it -> { it.from(input); action.execute(it); });
+    }
+    default RenameSources sources(TaskProvider<? extends AbstractArchiveTask> input) {
+    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
+    }
+    default RenameSources sources(TaskProvider<? extends AbstractArchiveTask> input, Action<? super RenameSources> action) {
+    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
+    }
+    default RenameSources sources(String name, TaskProvider<? extends AbstractArchiveTask> input, Action<? super RenameSources> action) {
+    	return this.sources(name, it -> { it.from(input); action.execute(it); });
+    }
+    RenameSources sources(String name, Action<? super RenameSources> action);
+    // endregion
 
+    // region Conversion
     // Convert mapping files from one format to another, Provider version accepts anything that can be resolved to a dependency
     default TaskProvider<ConvertMappings> convert(String name) {
     	return convert(name, (Provider<?>)null, "tsrg", task -> {});
@@ -110,6 +144,7 @@ public interface RenamerExtension {
     	return merge(name, task -> {});
     }
     TaskProvider<MergeMappings> merge(String name, Action<? super MergeMappings> action);
+    // endregion
 
     /// Used for deobfuscating dependencies.
     /// This does not support source file deobfuscation

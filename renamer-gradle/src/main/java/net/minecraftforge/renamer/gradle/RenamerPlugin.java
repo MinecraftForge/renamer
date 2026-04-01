@@ -6,6 +6,7 @@ package net.minecraftforge.renamer.gradle;
 
 import net.minecraftforge.gradleutils.shared.EnhancedPlugin;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.BasePlugin;
 
 import javax.inject.Inject;
 
@@ -20,6 +21,7 @@ abstract class RenamerPlugin extends EnhancedPlugin<Project> {
 
     @Override
     public void setup(Project project) {
+    	project.getPluginManager().apply(BasePlugin.class);
         project.getExtensions().create(RenamerExtension.class, "renamer", RenamerExtensionImpl.class);
     }
 }

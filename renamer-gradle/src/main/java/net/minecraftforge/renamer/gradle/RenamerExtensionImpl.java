@@ -8,6 +8,7 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import org.gradle.api.Action;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
+import org.gradle.api.Task;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.dsl.DependencyFactory;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -72,16 +73,29 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     }
 
     private static final String ASSEMBLE = "assemble";
-    @Override
-    public TaskProvider<RenameJar> classes(String name, Action<? super RenameJar> action) {
+    private <T extends Task> TaskProvider<T> addToAssemble(TaskProvider<T> dep) {
     	var tasks = getProject().getTasks();
-        var ret = tasks.register(name, RenameJar.class, this);
-        ret.configure(action);
-
         // Make the assemble task build our file, like the normal java plugin does
         if (tasks.getNames().contains(ASSEMBLE))
-        	tasks.named(ASSEMBLE).configure(task -> task.dependsOn(ret));
+        	tasks.named(ASSEMBLE).configure(task -> task.dependsOn(dep));
+        return dep;
+    }
 
+    @Override
+    public TaskProvider<RenameJar> classes(String name, Action<? super RenameJar> action) {
+        var ret = getProject().getTasks().register(name, RenameJar.class, this);
+        ret.configure(action);
+        return addToAssemble(ret);
+    }
+
+    @Override
+    public RenameSources sources(String name, Action<? super RenameSources> action) {
+    	var extract = getProject().getTasks().register(name + "Extract", RenameSourcesExtract.class);
+        var apply = getProject().getTasks().register(name, RenameSourcesApply.class, this);
+        addToAssemble(apply);
+
+        var ret = getObjects().newInstance(RenameSources.class, getProject(), apply, extract);
+        action.execute(ret);
         return ret;
     }
 

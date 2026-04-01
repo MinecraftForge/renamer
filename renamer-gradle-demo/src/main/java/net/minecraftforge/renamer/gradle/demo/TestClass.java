@@ -11,4 +11,7 @@ public class TestClass {
         System.out.println(TestClass.class.getName());
         Mappings.load(new ByteArrayInputStream("foo bar".getBytes(StandardCharsets.UTF_8)));
     }
+
+    private static void func_1234_() {
+    }
 }
