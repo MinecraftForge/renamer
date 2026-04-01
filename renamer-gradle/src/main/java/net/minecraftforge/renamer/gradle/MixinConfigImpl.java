@@ -22,6 +22,7 @@ import org.gradle.api.tasks.bundling.Jar;
 
 abstract class MixinConfigImpl implements MixinConfig {
 	private static final Logger LOGGER = LogManager.getLogger(MixinConfig.class);
+
 	private final RenamerExtensionImpl ext;
 	private final Map<String, MixinSourceSetConfigImpl> sourceSets = new HashMap<>();
 	private final TaskProvider<ConvertMappings> formatMappings;
@@ -109,19 +110,23 @@ abstract class MixinConfigImpl implements MixinConfig {
 
 	@Override
 	public void jar(TaskProvider<Jar> provider) {
-		provider.configure(task -> {
-        	// Add MixinConfigs Manifest entry
-    		if (!task.getManifest().getAttributes().containsKey("MixinConfigs"))
-    			task.getManifest().attributes(Map.of("MixinConfigs", String.join(",", this.getConfigs().get())));
+		provider.configure(this::configureJar);
+	}
 
-    		// Add the refmap files
-    		for (var inst : this.sourceSets.values()) {
-    			var ext = inst.sourceSet.getExtensions().getExtraProperties();
-    			@SuppressWarnings("unchecked")
-				var file = (Provider<File>)ext.get("refMapFile");
-    			LOGGER.info("[Renamer][Mixin] Adding " + inst.getRefMap().get() + " to " +  task.getName() + " from " + inst.sourceSet.getCompileJavaTaskName());
-    			task.from(file, cfg -> cfg.rename(name -> inst.getRefMap().get()));
-    		}
-    	});
+	private void configureJar(Jar task) {
+    	// Add MixinConfigs Manifest entry
+		if (!task.getManifest().getAttributes().containsKey("MixinConfigs"))
+			task.getManifest().attributes(Map.of("MixinConfigs", String.join(",", this.getConfigs().get())));
+
+		// Add the refmap files
+		for (var inst : this.sourceSets.values()) {
+			var ext = inst.sourceSet.getExtensions().getExtraProperties();
+			@SuppressWarnings("unchecked")
+			var file = (Provider<File>)ext.get("refMapFile");
+			// Extract so we con't capture 'inst' in the lambda, config cache doesn't like that.
+			var refMapName = inst.getRefMap();
+			LOGGER.info("[Renamer][Mixin] Adding " + refMapName.get() + " to " +  task.getName() + " from " + inst.sourceSet.getCompileJavaTaskName());
+			task.from(file, cfg -> cfg.rename(name -> refMapName.get()));
+		}
 	}
 }

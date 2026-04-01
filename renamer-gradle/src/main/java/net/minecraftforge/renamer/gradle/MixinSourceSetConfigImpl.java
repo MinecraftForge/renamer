@@ -14,7 +14,11 @@ import javax.inject.Inject;
 
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.RegularFile;
+import org.gradle.api.provider.ListProperty;
+import org.gradle.api.provider.MapProperty;
+import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.compile.JavaCompile;
@@ -23,12 +27,16 @@ import org.gradle.process.CommandLineArgumentProvider;
 abstract class MixinSourceSetConfigImpl implements MixinSourceSetConfig {
 	private static final Logger LOGGER = LogManager.getLogger(MixinConfig.class);
 	private final RenamerExtensionImpl ext;
+	private final MixinSourceSetConfig config;
 	final SourceSet sourceSet;
 
 	@Inject
 	public MixinSourceSetConfigImpl(RenamerExtensionImpl ext, MixinConfigImpl main, String name, SourceSet sourceSet) {
 		this.ext = ext;
 		this.sourceSet = sourceSet;
+
+		var project = this.ext.getProject();
+		this.config = project.getObjects().newInstance(MixinSourceSetConfig.class);
 
 		this.getRefMap().convention(name + ".refmap.json");
 		this.getDisableTargetValidator().convention(main.getDisableTargetValidator());
@@ -44,13 +52,14 @@ abstract class MixinSourceSetConfigImpl implements MixinSourceSetConfig {
 		this.getMessages().convention(main.getMessages());
 
 		this.ext.defaultMixinBehavior = false;
-		var project = this.ext.getProject();
 		var sourceExt = sourceSet.getExtensions().getExtraProperties();
 		var compile = project.getTasks().named(sourceSet.getCompileJavaTaskName(), JavaCompile.class);
 		var refMapFile = compile.map(task -> new File(task.getTemporaryDir(), task.getName() + "-refmap.json"));
 		var mappingFile = compile.map(task -> new File(task.getTemporaryDir(), task.getName() + "-mappings.tsrg"));
 		sourceExt.set("refMapFile", refMapFile);
 
+		// Store this field in a local variable so the config lambda doesn't capture 'this'
+		var cfg = this.config;
 		compile.configure(task -> {
 			var mappings = main.getMappings().flatMap(ConvertMappings::getOutput);
 			task.getInputs().files(mappings);
@@ -60,7 +69,7 @@ abstract class MixinSourceSetConfigImpl implements MixinSourceSetConfig {
 			extra.set("outTsrgFile", mappingFile);
 			extra.set("refMap", MixinSourceSetConfigImpl.this.getRefMap());
 			task.getOptions().getCompilerArgumentProviders().add(
-				project.getObjects().newInstance(CompilerArgs.class, MixinSourceSetConfigImpl.this, task, mappings)
+				project.getObjects().newInstance(CompilerArgs.class, cfg, mappings, mappingFile, refMapFile)
 			);
 		});
 
@@ -68,26 +77,77 @@ abstract class MixinSourceSetConfigImpl implements MixinSourceSetConfig {
 		main.getGeneratedMappings().configure(task -> task.map(mappingFile));
 	}
 
+	// region MixinSourceSetConfig properties, manually implemented to prevent capturing sourceSet object by config cache
+	@Override
+	public Property<String> getRefMap() {
+		return this.config.getRefMap();
+	}
+	@Override
+	public Property<Boolean> getDisableTargetValidator() {
+		return this.config.getDisableTargetValidator();
+	}
+	@Override
+	public Property<Boolean> getDisableTargetExport() {
+		return this.config.getDisableTargetExport();
+	}
+	@Override
+	public Property<Boolean> getDisableOverwriteChecker() {
+		return this.config.getDisableOverwriteChecker();
+	}
+	@Override
+	public Property<String> getOverwriteErrorLevel() {
+		return this.config.getOverwriteErrorLevel();
+	}
+	@Override
+	public Property<String> getDefaultObfuscationEnv() {
+		return this.config.getDefaultObfuscationEnv();
+	}
+	@Override
+	public ListProperty<String> getMappingTypes() {
+		return this.config.getMappingTypes();
+	}
+	@Override
+	public MapProperty<String, String> getTokens() {
+		return this.config.getTokens();
+	}
+	@Override
+	public ConfigurableFileCollection getExtraMappings() {
+		return this.config.getExtraMappings();
+	}
+	@Override
+	public Property<Boolean> getQuiet() {
+		return this.config.getQuiet();
+	}
+	@Override
+	public Property<Boolean> getShowMessageTypes() {
+		return this.config.getShowMessageTypes();
+	}
+	@Override
+	public MapProperty<String, String> getMessages() {
+		return this.config.getMessages();
+	}
+	// endregion
+
 	abstract static class CompilerArgs implements CommandLineArgumentProvider {
-		private final MixinSourceSetConfigImpl config;
-		private final JavaCompile compile;
+		private final MixinSourceSetConfig config;
 		private final Provider<RegularFile> mappings;
+		private final Provider<File> outputMappings;
+		private final Provider<File> outputRefMap;
 
 		@Inject
-		public CompilerArgs(MixinSourceSetConfigImpl config, JavaCompile compile, Provider<RegularFile> mappings) {
+		public CompilerArgs(MixinSourceSetConfig config, Provider<RegularFile> mappings, Provider<File> outputMappings, Provider<File> outputRefMap) {
 			this.config = config;
-			this.compile = compile;
 			this.mappings = mappings;
+			this.outputMappings = outputMappings;
+			this.outputRefMap = outputRefMap;
 		}
 
 		@Override
 		public Iterable<String> asArguments() {
-			var ext = this.compile.getExtensions().getExtraProperties();
-
 			var ret = new ArrayList<String>();
 			ret.add("-AreobfTsrgFile=" + mappings.get().getAsFile().getAbsolutePath());
-			ret.add("-AoutTsrgFile=" + file(ext.get("outTsrgFile")).getAbsolutePath());
-			ret.add("-AoutRefMapFile=" + file(ext.get("refMapFile")).getAbsolutePath());
+			ret.add("-AoutTsrgFile=" + outputMappings.get().getAbsolutePath());
+			ret.add("-AoutRefMapFile=" + outputRefMap.get().getAbsolutePath());
 			if (config.getDisableTargetValidator().getOrElse(false))
 				ret.add("-AdisableTargetValidator=true");
 			if (config.getDisableTargetExport().getOrElse(false))
@@ -138,14 +198,6 @@ abstract class MixinSourceSetConfigImpl implements MixinSourceSetConfig {
 			LOGGER.info("[Renamer][Mixin] Compile Args: " + ret);
 
 			return ret;
-		}
-
-		private static final File file(Object value) {
-			if (value instanceof File file)
-				return file;
-			if (value instanceof Provider<?> provider)
-				return file(provider.get());
-			throw new IllegalArgumentException("Unsupported file argument: " + value);
 		}
 	}
 }

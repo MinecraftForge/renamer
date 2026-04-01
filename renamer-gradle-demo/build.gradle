@@ -21,6 +21,14 @@ repositories {
     maven { url = "https://maven.blamejared.com/" }
 }
 
+renamer.enableMixinRefmaps {
+    config "mixins.json"
+    mappings {
+    	map = files('libs/sources.tsrg')
+    }
+}
+// need to specify mappings for mixin
+
 dependencies {
     compileOnly libs.log4j.api
 
@@ -33,6 +41,7 @@ dependencies {
     implementation renamer.dependency('net.minecraftforge:srgutils:0.6.0') {
     	map = files('libs/srgutils.tsrg')
     }
+    annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
 }
 
 renamer.classes(tasks.named('jar', Jar)) {

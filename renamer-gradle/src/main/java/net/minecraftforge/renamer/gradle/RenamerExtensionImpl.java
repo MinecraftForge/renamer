@@ -28,7 +28,7 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     final ConfigurableFileCollection mappings = getObjects().fileCollection();
 	private int dependencyCount = 0;
 	boolean defaultMixinBehavior = true;
-	private MixinConfigImpl mixin = null;
+	private @Nullable MixinConfigImpl mixin = null;
 
     protected abstract @Inject Project getProject();
 

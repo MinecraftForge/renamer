@@ -60,6 +60,7 @@ tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.Shadow
 
 tasks.named('javadoc', Javadoc) {
     javadocTool = javaToolchains.javadocToolFor { languageVersion = JavaLanguageVersion.of(25) }
+    options.addStringOption('Xdoclint:none', '-quiet')
 }
 
 tasks.named('javadocJar', Jar) {

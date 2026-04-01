@@ -154,7 +154,6 @@ public interface RenamerExtension {
     Provider<Dependency> dependency(String coordinates, Action<? super RenameJar> action);
 
     /**
-     * {@inheritDoc}
      * Enable Mixin reference mapping, "mixin magic" as seen <a href="https://github.com/MinecraftForge/renamer/issues/36">here</a>
      * <p>
      * For a more in depth explanation:
@@ -189,7 +188,6 @@ public interface RenamerExtension {
     }
 
     /**
-     * {@inheritDoc}
      * Enable and configure Mixin reference mapping, "mixin magic" as seen <a href="https://github.com/MinecraftForge/renamer/issues/36">here</a>
      * <p>
      * For a more in depth explanation:
