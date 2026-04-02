@@ -519,7 +519,8 @@ class EnhancedRemapper extends Remapper {
         }
 
         public String mapParameter(int index, String name) {
-            return this.params != null && index >= 0 && index < this.params.length ? this.params[index] : name;
+            String ret = this.params != null && index >= 0 && index < this.params.length ? this.params[index] : name;
+            return ret == null ? name : ret;
         }
 
         @Override
