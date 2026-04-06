@@ -17,6 +17,8 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.Nullable;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Remapper;
 
@@ -42,6 +44,7 @@ class EnhancedRemapper extends Remapper {
     private final Consumer<String> log;
 
     EnhancedRemapper(ClassProvider classProvider, IMappingFile map, Consumer<String> log, boolean naiveSrg) {
+    	super(Opcodes.ASM9);
         this.classProvider = classProvider;
         this.map = map;
         this.log = log;
@@ -98,9 +101,8 @@ class EnhancedRemapper extends Remapper {
     	return this.naiveSrgMap == null ? value : this.naiveSrgMap.getOrDefault(value, value);
     }
 
-    // TODO: [Renamer] Lookup how the JVM resolves InvokeDynamics and attempt to resolve it to get the owner?
     @Override
-    public String mapInvokeDynamicMethodName(final String name, final String descriptor) {
+    public String mapBasicInvokeDynamicMethodName(final String name, final String descriptor, final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
     	return naive(name);
 	}
 
@@ -113,7 +115,7 @@ class EnhancedRemapper extends Remapper {
     	return mtd == null ? naive(name) : mtd.getMapped();
     }
 
-    @Override // We'll treat this like fields for now, tho at the bytecode level I have no idea what this references
+    @Override
     public String mapRecordComponentName(final String owner, final String name, final String descriptor) {
         return mapFieldName(owner, name, descriptor);
     }
@@ -410,7 +412,7 @@ class EnhancedRemapper extends Remapper {
         }
     }
 
-    private static class MetaField {
+    private class MetaField {
     	private final MetaClass owner;
         private final IFieldInfo binary;
         private final IMappingFile.IField map;
@@ -421,7 +423,7 @@ class EnhancedRemapper extends Remapper {
         	this.owner = owner;
             this.binary = binary;
             this.map = field;
-            this.mappedName = field == null ? binary.getName() : field.getMapped();
+            this.mappedName = field == null ? naive(binary.getName()) : field.getMapped();
             this.key = getDescriptor() == null ? getName() : getName() + getDescriptor();
         }
 
@@ -493,7 +495,11 @@ class EnhancedRemapper extends Remapper {
         }
 
         public String getMapped() {
-            return mappedName == null ? map == null ? getName() : map.getMapped() : mappedName;
+        	if (mappedName != null)
+        		return mappedName;
+        	if (map != null)
+            	return map.getMapped();
+    		return naive(getName());
         }
 
         public String getKey() {
@@ -520,7 +526,7 @@ class EnhancedRemapper extends Remapper {
 
         public String mapParameter(int index, String name) {
             String ret = this.params != null && index >= 0 && index < this.params.length ? this.params[index] : name;
-            return ret == null ? name : ret;
+            return ret == null ? naive(name) : ret;
         }
 
         @Override
