@@ -68,6 +68,12 @@ public interface RenamerExtension {
     }
 
     TaskProvider<RenameJar> classes(String name, TaskProvider<? extends AbstractArchiveTask> input, Action<? super RenameJar> action);
+
+    default TaskProvider<RenameJar> classes(String name) {
+    	return this.classes(name, it -> {});
+    }
+
+    TaskProvider<RenameJar> classes(String name, Action<? super RenameJar> action);
     // endregion
 
     // region Source Renaming

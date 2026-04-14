@@ -31,6 +31,4 @@ interface RenamerExtensionInternal extends RenamerExtension, HasPublicType {
             action.execute(it);
         });
     }
-
-    TaskProvider<RenameJar> classes(String name, Action<? super RenameJar> action);
 }
