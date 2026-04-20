@@ -145,9 +145,14 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     		task.getMap().setFrom(this.mappings);
     		task.getInput().set(self.getSingleFile());
     		task.getLibraries().setFrom(libraries);
+
+            if (this.getProject().getPluginManager().hasPlugin(Util.FORGE_GRADLE_PLUGIN)) {
+                task.getReverse().convention(true);
+                task.getNaiveSrg().set(true);
+            }
     		action.execute(task);
     	});
-    	return rename.map(task -> this.getProject().getDependencies().create(this.getProject().files(task)));
+    	return rename.map(task -> this.getProject().getDependencies().create(this.getProject().files(task.getOutput())));
 	}
 
     @Override

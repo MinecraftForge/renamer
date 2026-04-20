@@ -154,9 +154,20 @@ public interface RenamerExtension {
 
     /// Used for deobfuscating dependencies.
     /// This does not support source file deobfuscation
+    ///
+    /// If the `net.minecraftforge.gradle` gradle plugin is also applied, then we also default
+    ///   * `naiveSrg` to `true`
+    ///   * `reverse` to `true`
     default Provider<Dependency> dependency(String coordinates) {
     	return dependency(coordinates, task -> {});
     }
+
+    /// Used for deobfuscating dependencies.
+    /// This does not support source file deobfuscation
+    ///
+    /// If the `net.minecraftforge.gradle` gradle plugin is also applied, then we also default
+    ///   * `naiveSrg` to `true`
+    ///   * `reverse` to `true`
     Provider<Dependency> dependency(String coordinates, Action<? super RenameJar> action);
 
     /**

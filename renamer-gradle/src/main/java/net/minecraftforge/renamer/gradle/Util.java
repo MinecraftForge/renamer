@@ -21,6 +21,8 @@ import org.gradle.api.tasks.TaskProvider;
 import org.jspecify.annotations.Nullable;
 
 final class Util extends SharedUtil {
+	static final String FORGE_GRADLE_PLUGIN = "net.minecraftforge.gradle";
+
     static final Spec<? super String> STRING_IS_PRESENT = s -> !s.isBlank();
 
     static @Nullable SourceSet findSourceSetFromJar(Project project, String jarTaskName) {
