@@ -70,7 +70,7 @@ public interface RenamerExtension {
     TaskProvider<RenameJar> classes(String name, TaskProvider<? extends AbstractArchiveTask> input, Action<? super RenameJar> action);
 
     default TaskProvider<RenameJar> classes(String name) {
-    	return this.classes(name, it -> {});
+        return this.classes(name, it -> {});
     }
 
     TaskProvider<RenameJar> classes(String name, Action<? super RenameJar> action);
@@ -78,31 +78,31 @@ public interface RenamerExtension {
 
     // region Source Renaming
     default RenameSources sources(SourceSet input) {
-    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
+        return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
     }
     default RenameSources sources(SourceSet input, Action<? super RenameSources> action) {
-    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
+        return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
     }
     default RenameSources sources(String name, SourceSet input, Action<? super RenameSources> action) {
-    	return this.sources(name, it -> { it.from(input); action.execute(it); });
+        return this.sources(name, it -> { it.from(input); action.execute(it); });
     }
     default RenameSources sources(AbstractArchiveTask input) {
-    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
+        return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
     }
     default RenameSources sources(AbstractArchiveTask input, Action<? super RenameSources> action) {
-    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
+        return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
     }
     default RenameSources sources(String name, AbstractArchiveTask input, Action<? super RenameSources> action) {
-    	return this.sources(name, it -> { it.from(input); action.execute(it); });
+        return this.sources(name, it -> { it.from(input); action.execute(it); });
     }
     default RenameSources sources(TaskProvider<? extends AbstractArchiveTask> input) {
-    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
+        return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", it -> it.from(input));
     }
     default RenameSources sources(TaskProvider<? extends AbstractArchiveTask> input, Action<? super RenameSources> action) {
-    	return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
+        return this.sources("rename" + StringGroovyMethods.capitalize(input.getName()) + "Sources", input, action);
     }
     default RenameSources sources(String name, TaskProvider<? extends AbstractArchiveTask> input, Action<? super RenameSources> action) {
-    	return this.sources(name, it -> { it.from(input); action.execute(it); });
+        return this.sources(name, it -> { it.from(input); action.execute(it); });
     }
     RenameSources sources(String name, Action<? super RenameSources> action);
     // endregion
@@ -110,44 +110,44 @@ public interface RenamerExtension {
     // region Conversion
     // Convert mapping files from one format to another, Provider version accepts anything that can be resolved to a dependency
     default TaskProvider<ConvertMappings> convert(String name) {
-    	return convert(name, (Provider<?>)null, "tsrg", task -> {});
+        return convert(name, (Provider<?>)null, "tsrg", task -> {});
     }
     default TaskProvider<ConvertMappings> convert(String name, Action<? super ConvertMappings> action) {
-    	return convert(name, (Provider<?>)null, "tsrg", action);
+        return convert(name, (Provider<?>)null, "tsrg", action);
     }
     default TaskProvider<ConvertMappings> convert(String name, Provider<?> input) {
-    	return convert(name, input, "tsrg", task -> {});
+        return convert(name, input, "tsrg", task -> {});
     }
     default TaskProvider<ConvertMappings> convert(String name, Provider<?> input, Action<? super ConvertMappings> action) {
-    	return convert(name, input, "tsrg", action);
+        return convert(name, input, "tsrg", action);
     }
     default TaskProvider<ConvertMappings> convert(String name, Provider<?> input, String format) {
-    	return convert(name, input, format, task -> {});
+        return convert(name, input, format, task -> {});
     }
     TaskProvider<ConvertMappings> convert(String name, Provider<?> input, String format, Action<? super ConvertMappings> action);
 
 
     // Convert mappings files from one format to another, TaskProvider accepts anything that has a 'RegularFileProperty getOutput()'
     default TaskProvider<ConvertMappings> convert(String name, TaskProvider<?> input) {
-    	return convert(name, input, "tsrg", task -> {});
+        return convert(name, input, "tsrg", task -> {});
     }
     default TaskProvider<ConvertMappings> convert(String name, TaskProvider<?> input, Action<? super ConvertMappings> action) {
-    	return convert(name, input, "tsrg", action);
+        return convert(name, input, "tsrg", action);
     }
     default TaskProvider<ConvertMappings> convert(String name, TaskProvider<?> input, String format) {
-    	return convert(name, input, format, task -> {});
+        return convert(name, input, format, task -> {});
     }
     TaskProvider<ConvertMappings> convert(String name, TaskProvider<?> input, String format, Action<? super ConvertMappings> action);
 
     // Chains two mapping files together, Provider accepts anything that can be resolved to a dependency, TaskProvider accepts anything that has a 'RegularFileProperty getOutput()'
     default TaskProvider<ChainMappings> chain(String name) {
-    	return chain(name, task -> {});
+        return chain(name, task -> {});
     }
     TaskProvider<ChainMappings> chain(String name, Action<? super ChainMappings> action);
 
     // Merges multiple mapping files together, Provider accepts anything that can be resolved to a dependency, TaskProvider accepts anything that has a 'RegularFileProperty getOutput()'
     default TaskProvider<MergeMappings> merge(String name) {
-    	return merge(name, task -> {});
+        return merge(name, task -> {});
     }
     TaskProvider<MergeMappings> merge(String name, Action<? super MergeMappings> action);
     // endregion
@@ -158,8 +158,9 @@ public interface RenamerExtension {
     /// If the `net.minecraftforge.gradle` gradle plugin is also applied, then we also default
     ///   * `naiveSrg` to `true`
     ///   * `reverse` to `true`
+    ///   * `accessTrasnsformers` to `true`
     default Provider<Dependency> dependency(String coordinates) {
-    	return dependency(coordinates, task -> {});
+        return dependency(coordinates, task -> {});
     }
 
     /// Used for deobfuscating dependencies.
@@ -168,6 +169,7 @@ public interface RenamerExtension {
     /// If the `net.minecraftforge.gradle` gradle plugin is also applied, then we also default
     ///   * `naiveSrg` to `true`
     ///   * `reverse` to `true`
+    ///   * `accessTrasnsformers` to `true`
     Provider<Dependency> dependency(String coordinates, Action<? super RenameJar> action);
 
     /**

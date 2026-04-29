@@ -15,16 +15,16 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 java.withSourcesJar();
 
 repositories {
-	mavenCentral()
-	maven { url = 'https://maven.minecraftforge.net/' }
-	// Needed for JEI
+    mavenCentral()
+    maven { url = 'https://maven.minecraftforge.net/' }
+    // Needed for JEI
     maven { url = "https://maven.blamejared.com/" }
 }
 
 renamer.enableMixinRefmaps {
     config "mixins.json"
     mappings {
-    	map = files('libs/sources.tsrg')
+        map = files('libs/sources.tsrg')
     }
 }
 // need to specify mappings for mixin
@@ -33,26 +33,29 @@ dependencies {
     compileOnly libs.log4j.api
 
     implementation renamer.dependency('mezz.jei:jei-1.20.1-forge:15.20.0.129') {
-    	map = files('libs/mappings_official-1.20.1-20230612.114412-map2srg.tsrg.gz')
-    	reverse = true // We want SRG -> Mapped, We could do this using renamer.convert, but this is a shorthand
-    	naiveSrg = true // JEI doesn't provide all of its dependencies, specifically SRG named Minecraft, so we need to naive SRG text replacement
+        map = files('libs/mappings_official-1.20.1-20230612.114412-map2srg.tsrg.gz')
+        // The following are set to true by default if you apply the net.minecraftforge.gradle plugin
+        reverse = true // We want SRG -> Mapped, We could do this using renamer.convert, but this is a shorthand
+        naiveSrg = true // JEI doesn't provide all of its dependencies, specifically SRG named Minecraft, so we need to naive SRG text replacement
+        accessTransformers = true // rename access transformer config files
     }
 
     implementation renamer.dependency('net.minecraftforge:srgutils:0.6.0') {
-    	map = files('libs/srgutils.tsrg')
+        map = files('libs/srgutils.tsrg')
     }
     annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
 }
 
 renamer.classes(tasks.named('jar', Jar)) {
     map = files('libs/mappings_test-1.0.tsrg.gz')
+    accessTransformers = true
 }
 
 def renamedSources = renamer.sources(sourceSets.main) {
-	apply {
-		map = files('libs/sources.tsrg')
-		archiveClassifier = 'sources-renamed'
-	}
+    apply {
+        map = files('libs/sources.tsrg')
+        archiveClassifier = 'sources-renamed'
+    }
 }
 
 publishing {
@@ -81,13 +84,13 @@ renamer.convert('reverse', srg) {
 }
 // Chaining Mappings A->B and B->C will output a map for A->C
 renamer.chain('chain') {
-	left tsrg
-	right files('libs/chain.tsrg')
+    left tsrg
+    right files('libs/chain.tsrg')
 }
 // Merging is useful if you have multiple map files, and need to call something that only supports one map file
 renamer.merge('merge') {
-	map tsrg
-	map files('libs/chain.tsrg')
+    map tsrg
+    map files('libs/chain.tsrg')
 }
 
 //renamer {

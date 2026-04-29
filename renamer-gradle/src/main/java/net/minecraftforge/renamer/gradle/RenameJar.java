@@ -49,6 +49,8 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
     public abstract @Input Property<String> getArchiveExtension();
     public abstract @Input Property<Boolean> getReverse();
     public abstract @Input Property<Boolean> getNaiveSrg();
+    public abstract @Input Property<Boolean> getAccessTransformers();
+    public abstract @Input Property<Boolean> getStore();
 
     public abstract @OutputFile RegularFileProperty getOutput();
 
@@ -74,7 +76,7 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
                     var ext = file.getName().substring(idx);
 
                     if (classifier.isEmpty())
-                    	classifier = "renamed";
+                        classifier = "renamed";
 
                     name = inputName + '-' + classifier + ext;
 
@@ -85,7 +87,7 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
                 var projectDir = this.getProject().getLayout().getProjectDirectory().getAsFile().getAbsolutePath();
                 // the file isn't in our project, which could cause inter-project issues. So pick a spot in our project
                 if (!parent.getAbsolutePath().startsWith(projectDir))
-                	return this.localCaches().file(String.format("renamed/%s", name)).get().getAsFile();
+                    return this.localCaches().file(String.format("renamed/%s", name)).get().getAsFile();
                 return new File(file.getParentFile(), name);
             })).orElse(this.getDefaultOutputFile())
         );
@@ -95,12 +97,14 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
         this.getArchiveDate().convention(this.getInput().map(input -> new Date(input.getAsFile().lastModified())));
         this.getReverse().convention(false);
         this.getNaiveSrg().convention(false);
+        this.getAccessTransformers().convention(false);
+        this.getStore().convention(false);
     }
 
     @Override
     @TaskAction
     protected ExecResult exec() throws IOException {
-    	return super.exec().assertNormalExitValue().rethrowFailure();
+        return super.exec().assertNormalExitValue().rethrowFailure();
     }
 
     public void from(AbstractArchiveTask task) {
@@ -125,11 +129,11 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
     }
 
     public void mappings(Provider<?> provider) {
-    	this.getMap().setFrom(Util.toConfiguration(getProject(), provider));
+        this.getMap().setFrom(Util.toConfiguration(getProject(), provider));
     }
 
     public void mappings(TaskProvider<?> task) {
-    	this.getMap().setFrom(Util.toFile(task));
+        this.getMap().setFrom(Util.toFile(task));
     }
 
     public void setMappings(FileCollection files) {
@@ -144,10 +148,16 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
         this.args("--lib", this.getLibraries());
 
         if (this.getReverse().getOrElse(false))
-        	this.args("--reverse");
+            this.args("--reverse");
 
         if (this.getNaiveSrg().getOrElse(false))
-        	this.args("--naive-srg");
+            this.args("--naive-srg");
+
+        if (this.getAccessTransformers().getOrElse(false))
+            this.args("--access-transformers");
+
+        if (this.getStore().getOrElse(false))
+            this.args("--store");
 
         super.addArguments();
     }

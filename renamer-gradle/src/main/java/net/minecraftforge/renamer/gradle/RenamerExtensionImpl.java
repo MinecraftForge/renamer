@@ -26,9 +26,9 @@ import javax.inject.Inject;
 abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
     // Renamer inputs
     final ConfigurableFileCollection mappings = getObjects().fileCollection();
-	private int dependencyCount = 0;
-	boolean defaultMixinBehavior = true;
-	private @Nullable MixinConfigImpl mixin = null;
+    private int dependencyCount = 0;
+    boolean defaultMixinBehavior = true;
+    private @Nullable MixinConfigImpl mixin = null;
 
     protected abstract @Inject Project getProject();
 
@@ -54,12 +54,12 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
 
     @Override
     public void mappings(Provider<?> dependency) {
-    	this.mappings.setFrom(Util.toConfiguration(getProject(), dependency));
+        this.mappings.setFrom(Util.toConfiguration(getProject(), dependency));
     }
 
     @Override
     public void mappings(TaskProvider<?> task) {
-    	this.mappings.setFrom(Util.toFile(task));
+        this.mappings.setFrom(Util.toFile(task));
     }
 
     @Override
@@ -69,28 +69,33 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
 
     @Override
     public ConfigurableFileCollection getMappings() {
-    	return this.mappings;
+        return this.mappings;
     }
 
     private static final String ASSEMBLE = "assemble";
     private <T extends Task> TaskProvider<T> addToAssemble(TaskProvider<T> dep) {
-    	var tasks = getProject().getTasks();
+        var tasks = getProject().getTasks();
         // Make the assemble task build our file, like the normal java plugin does
         if (tasks.getNames().contains(ASSEMBLE))
-        	tasks.named(ASSEMBLE).configure(task -> task.dependsOn(dep));
+            tasks.named(ASSEMBLE).configure(task -> task.dependsOn(dep));
         return dep;
     }
 
     @Override
     public TaskProvider<RenameJar> classes(String name, Action<? super RenameJar> action) {
         var ret = getProject().getTasks().register(name, RenameJar.class, this);
-        ret.configure(action);
+        ret.configure(task -> {
+            if (this.getProject().getPluginManager().hasPlugin(Util.FORGE_GRADLE_PLUGIN)) {
+                task.getAccessTransformers().set(true);
+            }
+            action.execute(task);
+        });
         return addToAssemble(ret);
     }
 
     @Override
     public RenameSources sources(String name, Action<? super RenameSources> action) {
-    	var extract = getProject().getTasks().register(name + "Extract", RenameSourcesExtract.class);
+        var extract = getProject().getTasks().register(name + "Extract", RenameSourcesExtract.class);
         var apply = getProject().getTasks().register(name, RenameSourcesApply.class, this);
         addToAssemble(apply);
 
@@ -101,95 +106,96 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
 
     @Override
     public TaskProvider<ConvertMappings> convert(String name, @Nullable Provider<?> input, String format, Action<? super ConvertMappings> action) {
-    	var output = getProject().getLayout().getBuildDirectory().file("mappings/" + name + '.' + format);
-    	return getProject().getTasks().register(name, ConvertMappings.class, task -> {
-    		if (input != null)
-    			task.map(input);
-    		task.getFormat().set(format);
-    		task.getOutput().set(output);
-    		action.execute(task);
-    	});
+        var output = getProject().getLayout().getBuildDirectory().file("mappings/" + name + '.' + format);
+        return getProject().getTasks().register(name, ConvertMappings.class, task -> {
+            if (input != null)
+                task.map(input);
+            task.getFormat().set(format);
+            task.getOutput().set(output);
+            action.execute(task);
+        });
     }
 
     @Override
     public TaskProvider<ConvertMappings> convert(String name, @Nullable TaskProvider<?> input, String format, Action<? super ConvertMappings> action) {
-    	var output = getProject().getLayout().getBuildDirectory().file("mappings/" + name + '.' + format);
-    	return getProject().getTasks().register(name, ConvertMappings.class, task -> {
-    		if (input != null)
-    			task.map(input);
-    		task.getFormat().set(format);
-    		task.getOutput().set(output);
-    		action.execute(task);
-    	});
+        var output = getProject().getLayout().getBuildDirectory().file("mappings/" + name + '.' + format);
+        return getProject().getTasks().register(name, ConvertMappings.class, task -> {
+            if (input != null)
+                task.map(input);
+            task.getFormat().set(format);
+            task.getOutput().set(output);
+            action.execute(task);
+        });
     }
 
     @Override
     public TaskProvider<ChainMappings> chain(String name, Action<? super ChainMappings> action) {
-    	return getProject().getTasks().register(name, ChainMappings.class, action);
+        return getProject().getTasks().register(name, ChainMappings.class, action);
     }
 
     @Override
     public TaskProvider<MergeMappings> merge(String name, Action<? super MergeMappings> action) {
-    	return getProject().getTasks().register(name, MergeMappings.class, action);
+        return getProject().getTasks().register(name, MergeMappings.class, action);
     }
 
     @Override
     public Provider<Dependency> dependency(String notation, Action<? super RenameJar> action) {
-    	var dep = this.getProject().getDependencies().create(notation);
-    	var self = this.getProject().getConfigurations().detachedConfiguration(dep);
-    	self.setTransitive(false);
-    	var deps = this.getProject().getConfigurations().detachedConfiguration(dep);
-    	var libraries = deps.minus(self);
-    	var rename = this.getProject().getTasks().register("_rename_dep_" + this.dependencyCount++, RenameJar.class, this);
-    	rename.configure(task -> {
-    		task.getMap().setFrom(this.mappings);
-    		task.getInput().set(self.getSingleFile());
-    		task.getLibraries().setFrom(libraries);
+        var dep = this.getProject().getDependencies().create(notation);
+        var self = this.getProject().getConfigurations().detachedConfiguration(dep);
+        self.setTransitive(false);
+        var deps = this.getProject().getConfigurations().detachedConfiguration(dep);
+        var libraries = deps.minus(self);
+        var rename = this.getProject().getTasks().register("_rename_dep_" + this.dependencyCount++, RenameJar.class, this);
+        rename.configure(task -> {
+            task.getMap().setFrom(this.mappings);
+            task.getInput().set(self.getSingleFile());
+            task.getLibraries().setFrom(libraries);
 
             if (this.getProject().getPluginManager().hasPlugin(Util.FORGE_GRADLE_PLUGIN)) {
                 task.getReverse().convention(true);
                 task.getNaiveSrg().set(true);
+                task.getAccessTransformers().set(true);
             }
-    		action.execute(task);
-    	});
-    	return rename.map(task -> this.getProject().getDependencies().create(this.getProject().files(task.getOutput())));
-	}
+            action.execute(task);
+        });
+        return rename.map(task -> this.getProject().getDependencies().create(this.getProject().files(task.getOutput())));
+    }
 
     @Override
     public MixinConfig getMixin() {
-    	if (this.mixin == null) {
-        	this.mixin = this.getObjects().newInstance(MixinConfigImpl.class, this);
-        	this.getProject().afterEvaluate(this::mixinDefaultActions);
-    	}
-    	return this.mixin;
+        if (this.mixin == null) {
+            this.mixin = this.getObjects().newInstance(MixinConfigImpl.class, this);
+            this.getProject().afterEvaluate(this::mixinDefaultActions);
+        }
+        return this.mixin;
     }
 
     @Override
     public MixinConfig enableMixinRefmaps(Action<MixinConfig> action) {
-    	var ret = getMixin();
-    	action.execute(ret);
-    	return ret;
+        var ret = getMixin();
+        action.execute(ret);
+        return ret;
     }
 
     private void mixinDefaultActions(Project project) {
-    	if (!this.defaultMixinBehavior)
-    		return;
+        if (!this.defaultMixinBehavior)
+            return;
 
-    	var java = project.getExtensions().findByType(JavaPluginExtension.class);
-    	// can't do shit if this isn't java
-    	if (java == null)
-    		return;
+        var java = project.getExtensions().findByType(JavaPluginExtension.class);
+        // can't do shit if this isn't java
+        if (java == null)
+            return;
 
-    	for (var sourceSet : java.getSourceSets())
-    		this.mixin.source(sourceSet);
+        for (var sourceSet : java.getSourceSets())
+            this.mixin.source(sourceSet);
 
-    	this.mixin.jar(project.getTasks().named(JavaPlugin.JAR_TASK_NAME, Jar.class));
+        this.mixin.jar(project.getTasks().named(JavaPlugin.JAR_TASK_NAME, Jar.class));
 
-    	var minecraft = project.getExtensions().findByName("minecraft");
-    	var runs = minecraft == null ? null : (NamedDomainObjectContainer<?>)InvokerHelper.getProperty(minecraft, "runs");
-    	if (runs != null) {
-    		for (var run : runs)
-    			this.mixin.run(run);
-    	}
+        var minecraft = project.getExtensions().findByName("minecraft");
+        var runs = minecraft == null ? null : (NamedDomainObjectContainer<?>)InvokerHelper.getProperty(minecraft, "runs");
+        if (runs != null) {
+            for (var run : runs)
+                this.mixin.run(run);
+        }
     }
 }
