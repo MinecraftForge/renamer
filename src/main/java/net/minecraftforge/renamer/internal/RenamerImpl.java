@@ -9,11 +9,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -38,11 +41,12 @@ class RenamerImpl implements Renamer {
     private final Consumer<String> logger;
     @SuppressWarnings("unused")
     private final Consumer<String> debug;
+    private final boolean store;
     private boolean setup = false;
     private ClassProvider libraryClasses;
 
     RenamerImpl(List<File> libraries, List<Transformer> transformers, SortedClassProvider sortedClassProvider, List<ClassProvider> classProviders,
-            int threads, Consumer<String> logger, Consumer<String> debug) {
+            int threads, Consumer<String> logger, Consumer<String> debug, boolean store) {
         this.libraries = libraries;
         this.transformers = transformers;
         this.sortedClassProvider = sortedClassProvider;
@@ -50,6 +54,7 @@ class RenamerImpl implements Renamer {
         this.threads = threads;
         this.logger = logger;
         this.debug = debug;
+        this.store = store;
     }
 
     private void setup() {
@@ -82,7 +87,7 @@ class RenamerImpl implements Renamer {
 
         logger.accept("Reading Input: " + input.getAbsolutePath());
         // Read everything from the input jar!
-        List<Entry> oldEntries = new ArrayList<>();
+        Map<String, Entry> oldEntries = new HashMap<String, Entry>();
         try (ZipFile in = new ZipFile(input)) {
             Util.forZip(in, e -> {
                 if (e.isDirectory())
@@ -91,11 +96,11 @@ class RenamerImpl implements Renamer {
                 byte[] data = Util.toByteArray(in.getInputStream(e));
 
                 if (name.endsWith(".class"))
-                    oldEntries.add(ClassEntry.create(name, e.getTime(), data));
+                    oldEntries.put(name, ClassEntry.create(name, e.getTime(), data));
                 else if (name.equals(MANIFEST_NAME))
-                    oldEntries.add(ManifestEntry.create(e.getTime(), data));
+                    oldEntries.put(name, ManifestEntry.create(e.getTime(), data));
                 else
-                    oldEntries.add(ResourceEntry.create(name, e.getTime(), data));
+                    oldEntries.put(name, ResourceEntry.create(name, e.getTime(), data));
             });
         } catch (IOException e) {
             throw new RuntimeException("Could not parse input: " + input.getAbsolutePath(), e);
@@ -117,7 +122,7 @@ class RenamerImpl implements Renamer {
             ).stream().collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
             */
 
-            List<ClassEntry> ourClasses = oldEntries.stream()
+            List<ClassEntry> ourClasses = oldEntries.values().stream()
                 .filter(e -> e instanceof ClassEntry && !e.getName().startsWith("META-INF/"))
                 .map(ClassEntry.class::cast)
                 .collect(Collectors.toList());
@@ -132,7 +137,8 @@ class RenamerImpl implements Renamer {
 
             // Process everything
             logger.accept("Processing entries");
-            List<Entry> newEntries = async.invokeAll(oldEntries, Entry::getName, this::processEntry);
+            transformers.forEach(t -> t.preprocess(oldEntries));
+            List<Entry> newEntries = async.invokeAll(oldEntries.values(), Entry::getName, this::processEntry);
 
             logger.accept("Adding extras");
             transformers.forEach(t -> newEntries.addAll(t.getExtras()));
@@ -163,9 +169,13 @@ class RenamerImpl implements Renamer {
             logger.accept("Writing Output: " + output.getAbsolutePath());
             try (FileOutputStream fos = new FileOutputStream(output);
                 ZipOutputStream zos = new ZipOutputStream(fos)) {
-                // Explicitly set compression level because of potential differences based on environment.
-                // See https://github.com/MinecraftForge/JarSplitter/pull/2
-                zos.setLevel(6);
+                if (store) {
+                    zos.setMethod(ZipOutputStream.STORED);
+                } else {
+                    // Explicitly set compression level because of potential differences based on environment.
+                    // See https://github.com/MinecraftForge/JarSplitter/pull/2
+                    zos.setLevel(6);
+                }
 
                 for (Entry e : newEntries) {
                     String name = e.getName();
@@ -176,6 +186,12 @@ class RenamerImpl implements Renamer {
                     logger.accept("  " + name);
                     ZipEntry entry = new ZipEntry(name);
                     entry.setTime(e.getTime());
+                    if (store) {
+                        entry.setSize(e.getData().length);
+                        CRC32 crc32 = new CRC32();
+                        crc32.update(e.getData());
+                        entry.setCrc(crc32.getValue());
+                    }
                     zos.putNextEntry(entry);
                     zos.write(e.getData());
                     zos.closeEntry();
@@ -201,6 +217,10 @@ class RenamerImpl implements Renamer {
         logger.accept("  " + path + '/');
         ZipEntry dir = new ZipEntry(path + '/');
         dir.setTime(Entry.STABLE_TIMESTAMP);
+        if (this.store) {
+            dir.setSize(0);
+            dir.setCrc(0);
+        }
         zos.putNextEntry(dir);
         zos.closeEntry();
     }

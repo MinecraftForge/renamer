@@ -7,6 +7,7 @@ package net.minecraftforge.renamer.api;
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 
@@ -28,6 +29,12 @@ import static java.util.Objects.requireNonNull;
  * Transformers can be registered to a {@link Renamer.Builder} to run over all entries.
  */
 public interface Transformer {
+    /**
+     * Run a preprocessor over all entries, this is run synchronously.
+     * @param entries All entries in the input archive
+     */
+    default void preprocess(Map<String, Entry> entries) {}
+
     /**
      * Processes a class entry and returns the transformed entry.
      *
@@ -71,10 +78,23 @@ public interface Transformer {
      * @param map the mapping information to remap with
      * @param collectAbstractParams whether to collect abstract parameter names for FernFlower
      * @param naiveSrg Whether to enable 'naive' SRG renames, which will use simple word replacement for SRG names.
+     * @param renameAts Whether to enable renaming of access transformer files. These are located from the FMLAT manifest entry, `META-INF/accesstransformer.cfg` and `META-INF/mods.toml`
+     * @return a factory for a renaming transformer
+     */
+    static Factory renamerFactory(IMappingFile map, boolean collectAbstractParams, boolean naiveSrg, boolean renameAts) {
+        return ctx -> new RenamingTransformer(ctx.getClassProvider(), map, ctx.getLog(), collectAbstractParams, naiveSrg, renameAts);
+    }
+
+    /**
+     * Create a transformer that applies mappings as a transformation.
+     *
+     * @param map the mapping information to remap with
+     * @param collectAbstractParams whether to collect abstract parameter names for FernFlower
+     * @param naiveSrg Whether to enable 'naive' SRG renames, which will use simple word replacement for SRG names.
      * @return a factory for a renaming transformer
      */
     static Factory renamerFactory(IMappingFile map, boolean collectAbstractParams, boolean naiveSrg) {
-        return ctx -> new RenamingTransformer(ctx.getClassProvider(), map, ctx.getLog(), collectAbstractParams, naiveSrg);
+        return renamerFactory(map, collectAbstractParams, naiveSrg, false);
     }
 
     /**
@@ -85,7 +105,7 @@ public interface Transformer {
      * @return a factory for a renaming transformer
      */
     static Factory renamerFactory(IMappingFile map, boolean collectAbstractParams) {
-    	return renamerFactory(map, collectAbstractParams, false);
+        return renamerFactory(map, collectAbstractParams, false);
     }
 
     /**

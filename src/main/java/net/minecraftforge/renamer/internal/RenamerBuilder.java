@@ -27,6 +27,7 @@ public class RenamerBuilder implements Builder {
     private Consumer<String> logger = System.out::println;
     private Consumer<String> debug = s -> {};
     private boolean collectAbstractParams = true;
+    private boolean store = false;
 
     @Override
     public Builder lib(File value) {
@@ -94,6 +95,12 @@ public class RenamerBuilder implements Builder {
     }
 
     @Override
+    public Builder store() {
+        this.store = true;
+        return this;
+    }
+
+    @Override
     public Renamer build() {
         List<ClassProvider> classProviders = new ArrayList<>(this.classProviders);
         if (this.withJvmClasspath)
@@ -121,6 +128,6 @@ public class RenamerBuilder implements Builder {
         for (Transformer.Factory factory : transformerFactories) {
             transformers.add(requireNonNull(factory.create(ctx), "output of " + factory));
         }
-        return new RenamerImpl(libraries, transformers, sortedClassProvider, classProviders, threads, logger, debug);
+        return new RenamerImpl(libraries, transformers, sortedClassProvider, classProviders, threads, logger, debug, store);
     }
 }

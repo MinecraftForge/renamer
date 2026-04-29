@@ -121,6 +121,14 @@ public interface Renamer extends Closeable {
         Builder setCollectAbstractParams(boolean collectAbstractParams);
 
         /**
+         * Disables compression when writing the output archive. This is causes larger output, but prevents the
+         * issue of different implementations of zlib causing compression differences.
+         *
+         * @return this builder
+         */
+        Builder store();
+
+        /**
          * Builds the {@link Renamer} instance based on this configured builder.
          * The built Renamer is guaranteed to be reusable for multiple runs.
          *

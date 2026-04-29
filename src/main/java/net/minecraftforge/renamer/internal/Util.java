@@ -8,7 +8,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -43,5 +46,44 @@ class Util {
     }
     public static String nameToBytecode(String cls) {
         return cls == null ? null : cls.replace('.', '/');
+    }
+
+
+    static List<String> tokenize(String line) {
+        if (line.length() == 0)
+            return Collections.emptyList();
+
+        // This is unrolled instead of using String.split because that uses RegEx in the back end which is slow
+        List<String> ret = new ArrayList<>();
+        int start = 0;
+        for (int x = 0; x < line.length(); x++) {
+            char c = line.charAt(x);
+            if (c == ' ' || c == '\t') {
+                if (start == x)
+                    ret.add("");
+                else
+                    ret.add(line.substring(start, x));
+
+                // Skip all consecutive whitespace
+                do {
+                    x++;
+                    if (x == line.length())
+                        break;
+                    c = line.charAt(x);
+                } while (c == ' ' || c == '\t');
+
+                if (c == '#')
+                    break;
+
+                start = x--;
+            } else if (x == line.length() - 1) {
+                ret.add(line.substring(start));
+            } else if (c == '#') {
+                if (start != x)
+                    ret.add(line.substring(start, x));
+                break;
+            }
+        }
+        return ret;
     }
 }

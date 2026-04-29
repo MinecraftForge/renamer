@@ -53,6 +53,7 @@ dependencies {
     implementation libs.jopt
     api libs.srgutils
     implementation libs.bundles.asm
+    implementation libs.toml
 }
 
 tasks.named('jar', Jar) {

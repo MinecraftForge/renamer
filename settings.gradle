@@ -33,6 +33,7 @@ dependencyResolutionManagement.versionCatalogs.register('libs') {
     library 'jopt',      'net.sf.jopt-simple', 'jopt-simple'    version '6.0-alpha-3'
     library 'srgutils',  'net.minecraftforge', 'srgutils'       version '0.6.0'
     library 'powermock', 'org.powermock',      'powermock-core' version '2.0.9'
+    library 'toml',      'com.github.jezza',   'toml'           version '1.2-java-8'
 
     version 'asm', '9.9.1'
     library 'asm',         'org.ow2.asm', 'asm'         versionRef 'asm'

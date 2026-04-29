@@ -76,6 +76,8 @@ public class Main {
         OptionSpec<Void> reverseO = parser.accepts("reverse", "Reverse provided mapping file before applying");
         OptionSpec<Void> disableAbstractParam = parser.accepts("disable-abstract-param", "Disables collection of names of parameters of abstract methods for FernFlower");
         OptionSpec<Void> naiveSrgO = parser.accepts("naive-srg", "Attempts to rename names that match SRG names when inheretence fails. Allows for Mappings mods SRG->Named without all dependencies").availableIf(mapO);
+        OptionSpec<Void> accessTransformersO = parser.accepts("access-transformers", "Enable renaming of access transformers. Located via: FMLAT manifest entry, `META-INF/accesstransformer.cfg` or MANIFEST/mods.toml");
+        OptionSpec<Void> storeO = parser.accepts("store", "Disables compression, this is designed to produce stable output archives no matter what zlib implementation the user has installed");
         OptionSpec<Void> helpO = parser.accepts("help", "Prints help and exits").forHelp();
 
         OptionSet options;
@@ -109,8 +111,8 @@ public class Main {
         log.accept("Forge Renamer v" + getVersion());
 
         if (options.has(helpO)) {
-        	parser.printHelpOn(System.out);
-        	return;
+            parser.printHelpOn(System.out);
+            return;
         }
 
         Renamer.Builder builder = Renamer.builder();
@@ -137,6 +139,13 @@ public class Main {
         log.accept("threads: " + options.valueOf(threadsO));
         builder.threads(options.valueOf(threadsO));
 
+        if (options.has(storeO)) {
+            log.accept("Store: True");
+            builder.store();
+        } else {
+            log.accept("Store: False");
+        }
+
         // Map is optional so that we can run other fixes without renaming.
         // This does mean that it's not strictly a 'renaming' tool but screw it I like the name.
         if (options.has(mapO)) {
@@ -144,14 +153,15 @@ public class Main {
             boolean reverse = options.has(reverseO);
             boolean collectAbstractParams = !options.has(disableAbstractParam);
             boolean naiveSrg = options.has(naiveSrgO);
+            boolean ats = options.has(accessTransformersO);
 
-            log.accept("Names: " + mapF.getAbsolutePath() + "(reversed: " + reverse + ", collectAbstract: " + collectAbstractParams + ", naiveSrg: " + naiveSrg + ")");
+            log.accept("Names: " + mapF.getAbsolutePath() + "(reversed: " + reverse + ", collectAbstract: " + collectAbstractParams + ", naiveSrg: " + naiveSrg + ", ats: " + ats + ")");
             IMappingFile mappings = IMappingFile.load(mapF);
             if (options.has(reverseO)) {
                 mappings = mappings.reverse();
             }
 
-            builder.add(Transformer.renamerFactory(mappings, collectAbstractParams, naiveSrg));
+            builder.add(Transformer.renamerFactory(mappings, collectAbstractParams, naiveSrg, ats));
         } else {
             log.accept("Names: null");
         }
