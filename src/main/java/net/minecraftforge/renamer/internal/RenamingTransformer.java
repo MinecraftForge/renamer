@@ -5,7 +5,6 @@
 package net.minecraftforge.renamer.internal;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -80,8 +79,8 @@ public class RenamingTransformer implements Transformer {
                     Manifest mf = new Manifest(new ByteArrayInputStream(entry.getData()));
                     String cfgs = (String)mf.getMainAttributes().get(FMLAT);
                     if (cfgs != null) {
-                        for (String pt : cfgs.split(","))
-                            atPaths.add(pt);
+                        for (String pt : cfgs.split(" "))
+                            atPaths.add("META-INF/" + pt);
                     }
                 } catch (IOException e) {
                     logger.accept("Failed to parse manifest: " + e);
