@@ -36,7 +36,7 @@ import net.minecraftforge.srgutils.IRenamer;
 import static org.objectweb.asm.Opcodes.*;
 
 class EnhancedRemapper extends Remapper {
-	private static final Predicate<String> SRG_PATTERN = Pattern.compile("^(?:[fF]unc_\\d+_[a-zA-Z_]+|m_\\d+_|[fF]ield_\\d+_[a-zA-Z_]+|f_\\d+_|p_\\w+_\\d+_|p_\\d+_)$").asPredicate();
+    private static final Predicate<String> SRG_PATTERN = Pattern.compile("^(?:[fF]unc_\\d+_[a-zA-Z_]+|m_\\d+_|[fF]ield_\\d+_[a-zA-Z_]+|f_\\d+_|p_\\w+_\\d+_|p_\\d+_)$").asPredicate();
     private final ClassProvider classProvider;
     private final IMappingFile map;
     private final Map<String, String> naiveSrgMap;
@@ -44,32 +44,32 @@ class EnhancedRemapper extends Remapper {
     private final Consumer<String> log;
 
     EnhancedRemapper(ClassProvider classProvider, IMappingFile map, Consumer<String> log, boolean naiveSrg) {
-    	super(Opcodes.ASM9);
+        super(Opcodes.ASM9);
         this.classProvider = classProvider;
         this.map = map;
         this.log = log;
         if (naiveSrg) {
-        	this.naiveSrgMap = new HashMap<>();
-        	map.rename(new IRenamer() {
-        		@Override public String rename(IField value) { return capture(value); }
-        		@Override public String rename(IMethod value) { return capture(value); }
-        		@Override public String rename(IParameter value) { return capture(value); }
-        		private String capture(INode value) {
-        			if (SRG_PATTERN.test(value.getOriginal()))
-        				naiveSrgMap.put(value.getOriginal(), value.getMapped());
-        			return value.getMapped();
-        		}
-        	});
+            this.naiveSrgMap = new HashMap<>();
+            map.rename(new IRenamer() {
+                @Override public String rename(IField value) { return capture(value); }
+                @Override public String rename(IMethod value) { return capture(value); }
+                @Override public String rename(IParameter value) { return capture(value); }
+                private String capture(INode value) {
+                    if (SRG_PATTERN.test(value.getOriginal()))
+                        naiveSrgMap.put(value.getOriginal(), value.getMapped());
+                    return value.getMapped();
+                }
+            });
         } else {
-        	this.naiveSrgMap = null;
+            this.naiveSrgMap = null;
         }
     }
 
     // TODO: [Renamer] None of the mapping formats support renaming modules currently.
     @Override
     public String mapModuleName(final String name) {
-    	return name;
-	}
+        return name;
+    }
 
     @Override
     public String mapAnnotationAttributeName(final String descriptor, final String name) {
@@ -98,21 +98,21 @@ class EnhancedRemapper extends Remapper {
     }
 
     private final String naive(String value) {
-    	return this.naiveSrgMap == null ? value : this.naiveSrgMap.getOrDefault(value, value);
+        return this.naiveSrgMap == null ? value : this.naiveSrgMap.getOrDefault(value, value);
     }
 
     @Override
     public String mapBasicInvokeDynamicMethodName(final String name, final String descriptor, final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
-    	return naive(name);
-	}
+        return naive(name);
+    }
 
     @Override
     public String mapMethodName(final String owner, final String name, final String descriptor) {
-    	MetaClass cls = getClass(owner).orElse(null);
-    	if (cls == null)
-    		return naive(name);
-    	MetaMethod mtd = cls.getMethod(name, descriptor).orElse(null);
-    	return mtd == null ? naive(name) : mtd.getMapped();
+        MetaClass cls = getClass(owner).orElse(null);
+        if (cls == null)
+            return naive(name);
+        MetaMethod mtd = cls.getMethod(name, descriptor).orElse(null);
+        return mtd == null ? naive(name) : mtd.getMapped();
     }
 
     @Override
@@ -122,11 +122,11 @@ class EnhancedRemapper extends Remapper {
 
     @Override
     public String mapFieldName(final String owner, final String name, final String descriptor) {
-    	MetaClass cls = getClass(owner).orElse(null);
-    	if (cls == null)
-    		return naive(name);
-    	MetaField fld = cls.getField(name, descriptor).orElse(null);
-    	return fld == null ? naive(name) : fld.getMapped();
+        MetaClass cls = getClass(owner).orElse(null);
+        if (cls == null)
+            return naive(name);
+        MetaField fld = cls.getField(name, descriptor).orElse(null);
+        return fld == null ? naive(name) : fld.getMapped();
     }
 
     @Override
@@ -136,16 +136,16 @@ class EnhancedRemapper extends Remapper {
 
     @Override
     public String map(final String name) {
-    	MetaClass cls = getClass(name).orElse(null);
-    	return cls == null ? map.remapClass(name) : cls.getMapped();
+        MetaClass cls = getClass(name).orElse(null);
+        return cls == null ? map.remapClass(name) : cls.getMapped();
     }
 
     public String mapParameterName(final String owner, final String methodName, final String methodDescriptor, final int index, final String paramName) {
-    	MetaClass cls = getClass(owner).orElse(null);
-    	if (cls == null)
-    		return naive(paramName);
-    	MetaMethod mtd = cls.getMethod(methodName, methodDescriptor).orElse(null);
-    	return mtd == null ? naive(paramName) : mtd.mapParameter(index, paramName);
+        MetaClass cls = getClass(owner).orElse(null);
+        if (cls == null)
+            return naive(paramName);
+        MetaMethod mtd = cls.getMethod(methodName, methodDescriptor).orElse(null);
+        return mtd == null ? naive(paramName) : mtd.mapParameter(index, paramName);
     }
 
     private Optional<MetaClass> getClass(String cls) {
@@ -203,32 +203,36 @@ class EnhancedRemapper extends Remapper {
                 List<MetaClass> parents = new ArrayList<>();
                 EnhancedRemapper.this.getClass(binaryClass.getSuper()).ifPresent(parents::add);
                 for (String intf : binaryClass.getInterfaces()) {
-                	MetaClass metaClass = EnhancedRemapper.this.getClass(intf).orElse(null);
-                	if (metaClass != null)
-                		parents.add(metaClass);
+                    MetaClass metaClass = EnhancedRemapper.this.getClass(intf).orElse(null);
+                    if (metaClass != null)
+                        parents.add(metaClass);
                 }
                 this.parents = Collections.unmodifiableList(parents);
 
                 for (IFieldInfo binaryField : binaryClass.getFields()) {
-                	IField mapField = mapClass == null ? null : mapClass.getField(binaryField.getName());
-                	MetaField metaField = new MetaField(this, binaryField, mapField);
-                	fields.put(metaField.getKey(), Optional.of(metaField));
+                    IField mapField = mapClass == null ? null : mapClass.getField(binaryField.getName());
+                    MetaField metaField = new MetaField(this, binaryField, mapField);
+                    Optional<MetaField> value = Optional.of(metaField);
+                    fields.put(metaField.getKey(), value);
+                    fields.putIfAbsent(metaField.getName(), value); // Add without descriptor if we have to lookup in a context we don't have it
                 }
 
                 for (IMethodInfo binaryMethod : binaryClass.getMethods()) {
-                	IMethod mapMethod = mapClass == null ? null : mapClass.getMethod(binaryMethod.getName(), binaryMethod.getDescriptor());
-                	MetaMethod metaMethod = new MetaMethod(this, binaryMethod, mapMethod);
-                	methods.put(metaMethod.getKey(), Optional.of(metaMethod));
+                    IMethod mapMethod = mapClass == null ? null : mapClass.getMethod(binaryMethod.getName(), binaryMethod.getDescriptor());
+                    MetaMethod metaMethod = new MetaMethod(this, binaryMethod, mapMethod);
+                    methods.put(metaMethod.getKey(), Optional.of(metaMethod));
                 }
             } else {
                 this.parents = Collections.emptyList();
                 for (IField mapField : mapClass.getFields()) {
-                	MetaField metaField = new MetaField(this, null, mapField);
-                	fields.put(metaField.getKey(), Optional.of(metaField));
+                    MetaField metaField = new MetaField(this, null, mapField);
+                    Optional<MetaField> value = Optional.of(metaField);
+                    fields.put(metaField.getKey(), value);
+                    fields.putIfAbsent(metaField.getName(), value); // Add without descriptor if we have to lookup in a context we don't have it
                 }
                 for (IMethod mapMethod : mapClass.getMethods()) {
-                	MetaMethod metaMethod = new MetaMethod(this, null, mapMethod);
-                	methods.put(metaMethod.getKey(), Optional.of(metaMethod));
+                    MetaMethod metaMethod = new MetaMethod(this, null, mapMethod);
+                    methods.put(metaMethod.getKey(), Optional.of(metaMethod));
                 }
             }
 
@@ -413,14 +417,14 @@ class EnhancedRemapper extends Remapper {
     }
 
     private class MetaField {
-    	private final MetaClass owner;
+        private final MetaClass owner;
         private final IFieldInfo binary;
         private final IMappingFile.IField map;
         private final String mappedName;
         private final String key;
 
         MetaField(MetaClass owner, IFieldInfo binary, IMappingFile.IField field) {
-        	this.owner = owner;
+            this.owner = owner;
             this.binary = binary;
             this.map = field;
             this.mappedName = field == null ? naive(binary.getName()) : field.getMapped();
@@ -450,7 +454,7 @@ class EnhancedRemapper extends Remapper {
     }
 
     private class MetaMethod {
-    	private final MetaClass owner;
+        private final MetaClass owner;
         private final IMethodInfo binary;
         private final IMappingFile.IMethod map;
         private String mappedName;
@@ -459,16 +463,16 @@ class EnhancedRemapper extends Remapper {
         private final boolean isStatic;
 
         MetaMethod(MetaClass owner, IMethodInfo binary, IMappingFile.IMethod map) {
-        	this.owner = owner;
+            this.owner = owner;
             this.binary = binary;
             this.map = map;
             this.isStatic =
-            	(binary != null && (binary.getAccess() & ACC_STATIC) == ACC_STATIC) ||
-        		(map != null && map.getMetadata().containsKey("is_static"));
+                (binary != null && (binary.getAccess() & ACC_STATIC) == ACC_STATIC) ||
+                (map != null && map.getMetadata().containsKey("is_static"));
 
             if (map != null && !map.getDescriptor().contains("()")) {
                 List<String> tmp = new ArrayList<>();
-            	if (!this.isStatic)
+                if (!this.isStatic)
                     tmp.add("this");
 
                 Type[] args = Type.getArgumentTypes(map.getDescriptor());
@@ -495,11 +499,11 @@ class EnhancedRemapper extends Remapper {
         }
 
         public String getMapped() {
-        	if (mappedName != null)
-        		return mappedName;
-        	if (map != null)
-            	return map.getMapped();
-    		return naive(getName());
+            if (mappedName != null)
+                return mappedName;
+            if (map != null)
+                return map.getMapped();
+            return naive(getName());
         }
 
         public String getKey() {

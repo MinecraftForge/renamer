@@ -31,7 +31,6 @@ import com.github.jezza.Toml;
 import com.github.jezza.TomlArray;
 import com.github.jezza.TomlTable;
 
-import net.minecraftforge.renamer.api.ClassProvider;
 import net.minecraftforge.renamer.api.Transformer;
 import net.minecraftforge.srgutils.IMappingFile;
 
@@ -46,26 +45,16 @@ public class RenamingTransformer implements Transformer {
     private final Set<String> abstractParams = ConcurrentHashMap.newKeySet();
     private final boolean collectAbstractParams;
     private final boolean renameAts;
+    private final boolean legacyForamt;
     private final Consumer<String> logger;
     private final Set<String> atPaths = new HashSet<>();
 
-    public RenamingTransformer(ClassProvider classProvider, IMappingFile map, Consumer<String> log) {
-        this(classProvider, map, log, true);
-    }
-
-    public RenamingTransformer(ClassProvider classProvider, IMappingFile map, Consumer<String> log, boolean collectAbstractParams) {
-        this(classProvider, map, log, collectAbstractParams, false);
-    }
-
-    public RenamingTransformer(ClassProvider classProvider, IMappingFile map, Consumer<String> log, boolean collectAbstractParams, boolean naiveSrg) {
-        this(classProvider, map, log, collectAbstractParams, naiveSrg, false);
-    }
-
-    public RenamingTransformer(ClassProvider classProvider, IMappingFile map, Consumer<String> log, boolean collectAbstractParams, boolean naiveSrg, boolean renameAts) {
-        this.collectAbstractParams = collectAbstractParams;
-        this.renameAts = renameAts;
-        this.logger = log;
-        this.remapper = new EnhancedRemapper(classProvider, map, log, naiveSrg);
+    private RenamingTransformer(Transformer.Context ctx, Builder builder) {
+        this.collectAbstractParams = builder.collectAbstractParameters;
+        this.renameAts = builder.renameAts;
+        this.legacyForamt = builder.legacyFormat;
+        this.logger = ctx.getLog();
+        this.remapper = new EnhancedRemapper(ctx.getClassProvider(), builder.map, this.logger, builder.naiveSrg);
     }
 
     @Override
@@ -166,7 +155,11 @@ public class RenamingTransformer implements Transformer {
                     String cls = pts.get(1).replace('.', '/');
                     out.write(pts.get(0));
                     out.write(' ');
-                    out.write(this.remapper.map(cls).replace('/', '.'));
+                    // Legacy uses . to split class from field/method. So keep class names in bytecode format
+                    if (this.legacyForamt)
+                        out.write(this.remapper.map(cls));
+                    else
+                        out.write(this.remapper.map(cls).replace('/', '.'));
                     if (comment != -1) {
                         out.write(' ');
                         out.write(line.substring(comment));
@@ -176,8 +169,14 @@ public class RenamingTransformer implements Transformer {
                     String name = pts.get(2);
                     out.write(pts.get(0));
                     out.write(' ');
-                    out.write(this.remapper.map(cls).replace('/', '.'));
-                    out.write(' ');
+                    // Legacy uses . to split class from field/method. So keep class names in bytecode format
+                    if (this.legacyForamt) {
+                        out.write(this.remapper.map(cls));
+                        out.write('.');
+                    } else {
+                        out.write(this.remapper.map(cls).replace('/', '.'));
+                        out.write(' ');
+                    }
                     int paren = name.indexOf('(');
                     if (paren == -1) { // Field
                         out.write(this.remapper.mapFieldName(cls, name, null));
@@ -202,6 +201,42 @@ public class RenamingTransformer implements Transformer {
             // In theory this should never be possible. As we're just working in memory
             logger.accept("Error renaming access transformer " + entry.getName() + ": " + e);
             throw new RuntimeException(e);
+        }
+    }
+
+    public static class Builder implements Transformer.Renamer {
+        private final IMappingFile map;
+        private boolean naiveSrg = false;
+        private boolean collectAbstractParameters = false;
+        private boolean renameAts = false;
+        private boolean legacyFormat = false;
+
+        public Builder(IMappingFile map) {
+            this.map = map;
+        }
+
+        @Override
+        public Factory build() {
+            return ctx -> new RenamingTransformer(ctx, this);
+        }
+
+        @Override
+        public Builder collectAbstractParameters() {
+            this.collectAbstractParameters = true;
+            return this;
+        }
+
+        @Override
+        public Builder naiveSrg() {
+            this.naiveSrg = true;
+            return this;
+        }
+
+        @Override
+        public Builder accessTransformers(boolean legacyFormat) {
+            this.renameAts = true;
+            this.legacyFormat = legacyFormat;
+            return this;
         }
     }
 }

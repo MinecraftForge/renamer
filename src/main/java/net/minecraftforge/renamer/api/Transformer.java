@@ -80,9 +80,18 @@ public interface Transformer {
      * @param naiveSrg Whether to enable 'naive' SRG renames, which will use simple word replacement for SRG names.
      * @param renameAts Whether to enable renaming of access transformer files. These are located from the FMLAT manifest entry, `META-INF/accesstransformer.cfg` and `META-INF/mods.toml`
      * @return a factory for a renaming transformer
+     *
+     * @deprecated For Removal, Since 2.2, Use {@link Renamer#builder(IMappingFile)}
      */
     static Factory renamerFactory(IMappingFile map, boolean collectAbstractParams, boolean naiveSrg, boolean renameAts) {
-        return ctx -> new RenamingTransformer(ctx.getClassProvider(), map, ctx.getLog(), collectAbstractParams, naiveSrg, renameAts);
+        Renamer builder = Renamer.builder(map);
+        if (collectAbstractParams)
+            builder.collectAbstractParameters();
+        if (naiveSrg)
+            builder.naiveSrg();
+        if (renameAts)
+            builder.accessTransformers(false);
+        return builder.build();
     }
 
     /**
@@ -92,6 +101,8 @@ public interface Transformer {
      * @param collectAbstractParams whether to collect abstract parameter names for FernFlower
      * @param naiveSrg Whether to enable 'naive' SRG renames, which will use simple word replacement for SRG names.
      * @return a factory for a renaming transformer
+     *
+     * @deprecated For Removal, Since 2.2, Use {@link Renamer#builder(IMappingFile)}
      */
     static Factory renamerFactory(IMappingFile map, boolean collectAbstractParams, boolean naiveSrg) {
         return renamerFactory(map, collectAbstractParams, naiveSrg, false);
@@ -103,6 +114,8 @@ public interface Transformer {
      * @param map the mapping information to remap with
      * @param collectAbstractParams whether to collect abstract parameter names for FernFlower
      * @return a factory for a renaming transformer
+     *
+     * @deprecated For Removal, Since 2.2, Use {@link Renamer#builder(IMappingFile)}
      */
     static Factory renamerFactory(IMappingFile map, boolean collectAbstractParams) {
         return renamerFactory(map, collectAbstractParams, false);
@@ -115,7 +128,7 @@ public interface Transformer {
      * @return a factory for a renaming transformer
      */
     static Factory renamerFactory(IMappingFile map) {
-        return renamerFactory(map, true);
+        return Renamer.builder(map).collectAbstractParameters().build();
     }
 
     /**
@@ -350,5 +363,34 @@ public interface Transformer {
          * @return the class provider instance
          */
         ClassProvider getClassProvider();
+    }
+
+    public interface Renamer {
+        static Renamer builder(IMappingFile map) {
+            return new RenamingTransformer.Builder(map);
+        }
+
+        /**
+         * Collects abstract parameters into a special file that Fernflower uses to rename abstract methods.
+         */
+        Renamer collectAbstractParameters();
+
+        /**
+         * Enables just 'guessing' the mapped name when there is no mapping for a srg formatted name.
+         * This typically is only needed if you do not include the entire inheretice tree for the object you're remapping.
+         * When doing so, there may be edge cases which result in bad mappings.
+         * It is always recommended to provide the full classpath so we can rename things correctly.
+         */
+        Renamer naiveSrg();
+
+        /**
+         * Enables renaming the AccessTransformer configuration files
+         * The input format is expected to always be modern format: access class[ name[desc]]
+         *
+         * @param legacyFormat Makes the output be in legacy format: access class[.name[desc]]
+         */
+        Renamer accessTransformers(boolean legacyFormat);
+
+        Factory build();
     }
 }

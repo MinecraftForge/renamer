@@ -76,7 +76,8 @@ public class Main {
         OptionSpec<Void> reverseO = parser.accepts("reverse", "Reverse provided mapping file before applying");
         OptionSpec<Void> disableAbstractParam = parser.accepts("disable-abstract-param", "Disables collection of names of parameters of abstract methods for FernFlower");
         OptionSpec<Void> naiveSrgO = parser.accepts("naive-srg", "Attempts to rename names that match SRG names when inheretence fails. Allows for Mappings mods SRG->Named without all dependencies").availableIf(mapO);
-        OptionSpec<Void> accessTransformersO = parser.accepts("access-transformers", "Enable renaming of access transformers. Located via: FMLAT manifest entry, `META-INF/accesstransformer.cfg` or MANIFEST/mods.toml");
+        OptionSpec<Void> accessTransformersO = parser.accepts("access-transformers", "Enable renaming of access transformers. Located via: FMLAT manifest entry, `META-INF/accesstransformer.cfg` or MANIFEST/mods.toml").availableIf(mapO);
+        OptionSpec<Void> legacyATFormatO = parser.accepts("legacy-access-transformers", "If Access Transformers are enabled, will output the transformer in legacy format, which is used in FML <1.6.4").availableIf(mapO);
         OptionSpec<Void> storeO = parser.accepts("store", "Disables compression, this is designed to produce stable output archives no matter what zlib implementation the user has installed");
         OptionSpec<Void> helpO = parser.accepts("help", "Prints help and exits").forHelp();
 
@@ -153,18 +154,29 @@ public class Main {
             boolean reverse = options.has(reverseO);
             boolean collectAbstractParams = !options.has(disableAbstractParam);
             boolean naiveSrg = options.has(naiveSrgO);
-            boolean ats = options.has(accessTransformersO);
 
-            log.accept("Names: " + mapF.getAbsolutePath() + "(reversed: " + reverse + ", collectAbstract: " + collectAbstractParams + ", naiveSrg: " + naiveSrg + ", ats: " + ats + ")");
+            log.accept("Names: " + mapF.getAbsolutePath() + "(reversed: " + reverse + ", collectAbstract: " + collectAbstractParams + ", naiveSrg: " + naiveSrg + ")");
             IMappingFile mappings = IMappingFile.load(mapF);
             if (options.has(reverseO)) {
                 mappings = mappings.reverse();
             }
 
-            builder.add(Transformer.renamerFactory(mappings, collectAbstractParams, naiveSrg, ats));
+            Transformer.Renamer renamer = Transformer.Renamer.builder(mappings);
+            if (collectAbstractParams)
+                renamer.collectAbstractParameters();
+            if (naiveSrg)
+                renamer.naiveSrg();
+            boolean legacy = options.has(legacyATFormatO);
+            if (options.has(accessTransformersO) || legacy) {
+                log.accept("Rename Access Transformers" +  (legacy ? " (legacy)" : ""));
+                renamer.accessTransformers(legacy);
+            }
+            builder.add(renamer.build());
         } else {
             log.accept("Names: null");
         }
+
+
 
         if (options.has(fixAnnO)) {
             log.accept("Fix Annotations: true");
