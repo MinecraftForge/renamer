@@ -17,7 +17,7 @@ jobs:
     uses: MinecraftForge/SharedActions/.github/workflows/gradle.yml@v0
     with:
       java: 17
-      gradle_tasks: ':renamer-gradle:check :renamer-gradle-demo:assemble :renamer-gradle:publish :renamer-gradle:publishPlugins'
+      gradle_tasks: ':renamer-gradle:check :renamer-gradle-demo:assemble :renamer-gradle:publishPlugins'
       project_path: 'renamer-gradle'
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
