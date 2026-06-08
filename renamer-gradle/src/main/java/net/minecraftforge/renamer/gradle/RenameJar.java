@@ -50,6 +50,7 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
     public abstract @Input Property<Boolean> getReverse();
     public abstract @Input Property<Boolean> getNaiveSrg();
     public abstract @Input Property<Boolean> getAccessTransformers();
+    public abstract @Input Property<Boolean> getLegacyAccessTransformers();
     public abstract @Input Property<Boolean> getStore();
 
     public abstract @OutputFile RegularFileProperty getOutput();
@@ -98,6 +99,7 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
         this.getReverse().convention(false);
         this.getNaiveSrg().convention(false);
         this.getAccessTransformers().convention(false);
+        this.getLegacyAccessTransformers().convention(false);
         this.getStore().convention(false);
     }
 
@@ -153,7 +155,9 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
         if (this.getNaiveSrg().getOrElse(false))
             this.args("--naive-srg");
 
-        if (this.getAccessTransformers().getOrElse(false))
+        if (this.getLegacyAccessTransformers().getOrElse(false))
+            this.args("--legacy-access-transformers");
+        else if (this.getAccessTransformers().getOrElse(false))
             this.args("--access-transformers");
 
         if (this.getStore().getOrElse(false))

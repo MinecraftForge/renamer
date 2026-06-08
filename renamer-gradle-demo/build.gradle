@@ -51,6 +51,12 @@ renamer.classes(tasks.named('jar', Jar)) {
     accessTransformers = true
 }
 
+renamer.classes('renameJarLegacy', tasks.named('jar', Jar)) {
+    map = files('libs/mappings_test-1.0.tsrg.gz')
+    legacyAccessTransformers = true
+    archiveClassifier = 'renamed-legacy'
+}
+
 def renamedSources = renamer.sources(sourceSets.main) {
     apply {
         map = files('libs/sources.tsrg')

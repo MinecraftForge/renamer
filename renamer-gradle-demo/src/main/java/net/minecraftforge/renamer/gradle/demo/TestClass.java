@@ -12,6 +12,8 @@ public class TestClass {
         Mappings.load(new ByteArrayInputStream("foo bar".getBytes(StandardCharsets.UTF_8)));
     }
 
+
+    public static String testField;
     private static void func_1234_() {
     }
 }
