@@ -64,6 +64,11 @@ renamer.classes('renameJarLegacy', tasks.named('jar', Jar)) {
     archiveClassifier = 'renamed-legacy'
 }
 
+renamer.classes('renameJarMixins', tasks.named('jar', Jar)) {
+    map.from(renamer.mixin.generatedMappings)
+    archiveClassifier = 'renamed-mixins'
+}
+
 def renamedSources = renamer.sources(sourceSets.main) {
     apply {
         map = files('libs/sources.tsrg')

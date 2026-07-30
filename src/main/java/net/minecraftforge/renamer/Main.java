@@ -79,6 +79,7 @@ public class Main {
         OptionSpec<Void> accessTransformersO = parser.accepts("access-transformers", "Enable renaming of access transformers. Located via: FMLAT manifest entry, `META-INF/accesstransformer.cfg` or MANIFEST/mods.toml").availableIf(mapO);
         OptionSpec<Void> legacyATFormatO = parser.accepts("legacy-access-transformers", "If Access Transformers are enabled, will output the transformer in legacy format, which is used in FML <1.6.4").availableIf(mapO);
         OptionSpec<Void> storeO = parser.accepts("store", "Disables compression, this is designed to produce stable output archives no matter what zlib implementation the user has installed");
+        OptionSpec<Void> mixinsO = parser.accepts("mixins", "Enable transforming of Mixin related files. Only RefMaps are currently supported.");
         OptionSpec<Void> helpO = parser.accepts("help", "Prints help and exits").forHelp();
 
         OptionSet options;
@@ -170,6 +171,10 @@ public class Main {
             if (options.has(accessTransformersO) || legacy) {
                 log.accept("Rename Access Transformers" +  (legacy ? " (legacy)" : ""));
                 renamer.accessTransformers(legacy);
+            }
+            if (options.has(mixinsO)) {
+                log.accept("Rename Mixins");
+                renamer.mixins();
             }
             builder.add(renamer.build());
         } else {

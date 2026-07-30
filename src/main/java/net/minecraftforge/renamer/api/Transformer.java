@@ -391,6 +391,14 @@ public interface Transformer {
          */
         Renamer accessTransformers(boolean legacyFormat);
 
+        /**
+         * Enables renaming of Mixin related files.
+         * Currently only refmaps are supported. It is possible to support inherited mappings for Mixin features
+         * such as the Shadow annotation. Making the AnnotationProcessor's extra mappings file unneeded.
+         * However this would require documenting each feature that would require inheritance.
+         */
+        Renamer mixins();
+
         Factory build();
     }
 }
