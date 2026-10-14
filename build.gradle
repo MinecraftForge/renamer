@@ -54,6 +54,7 @@ dependencies {
     api libs.srgutils
     implementation libs.bundles.asm
     implementation libs.toml
+    implementation libs.gson
 }
 
 tasks.named('jar', Jar) {

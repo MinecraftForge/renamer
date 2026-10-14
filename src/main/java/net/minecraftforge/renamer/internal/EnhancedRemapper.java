@@ -97,7 +97,7 @@ class EnhancedRemapper extends Remapper {
         return lst.get(0).getMapped();
     }
 
-    private final String naive(String value) {
+    final String naive(String value) {
         return this.naiveSrgMap == null ? value : this.naiveSrgMap.getOrDefault(value, value);
     }
 

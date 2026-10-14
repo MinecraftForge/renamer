@@ -23,6 +23,7 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.stream.Collectors;
 
+import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.ClassRemapper;
@@ -48,6 +49,7 @@ public class RenamingTransformer implements Transformer {
     private final boolean legacyForamt;
     private final Consumer<String> logger;
     private final Set<String> atPaths = new HashSet<>();
+    private final @Nullable MixinRenamer mixins;
 
     private RenamingTransformer(Transformer.Context ctx, Builder builder) {
         this.collectAbstractParams = builder.collectAbstractParameters;
@@ -55,6 +57,7 @@ public class RenamingTransformer implements Transformer {
         this.legacyForamt = builder.legacyFormat;
         this.logger = ctx.getLog();
         this.remapper = new EnhancedRemapper(ctx.getClassProvider(), builder.map, this.logger, builder.naiveSrg);
+        this.mixins = builder.mixins ? new MixinRenamer(this.logger, this.remapper) : null;
     }
 
     @Override
@@ -103,6 +106,8 @@ public class RenamingTransformer implements Transformer {
                 }
             }
         }
+        if (this.mixins != null)
+            this.mixins.preprocess(entries);
     }
 
     @Override
@@ -128,6 +133,9 @@ public class RenamingTransformer implements Transformer {
 
         if (this.atPaths.contains(entry.getName()))
             return renameAccessTransformer(entry);
+
+        if (this.mixins != null && this.mixins.isTarget(entry.getName()))
+            return this.mixins.process(entry);
 
         return entry;
     }
@@ -210,6 +218,7 @@ public class RenamingTransformer implements Transformer {
         private boolean collectAbstractParameters = false;
         private boolean renameAts = false;
         private boolean legacyFormat = false;
+        private boolean mixins = false;
 
         public Builder(IMappingFile map) {
             this.map = map;
@@ -236,6 +245,12 @@ public class RenamingTransformer implements Transformer {
         public Builder accessTransformers(boolean legacyFormat) {
             this.renameAts = true;
             this.legacyFormat = legacyFormat;
+            return this;
+        }
+
+        @Override
+        public Builder mixins() {
+            this.mixins = true;
             return this;
         }
     }
