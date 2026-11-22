@@ -159,6 +159,7 @@ public interface RenamerExtension {
     ///   * `naiveSrg` to `true`
     ///   * `reverse` to `true`
     ///   * `accessTrasnsformers` to `true`
+    ///   * `mixins` to `true`
     default Provider<Dependency> dependency(String coordinates) {
         return dependency(coordinates, task -> {});
     }
@@ -170,6 +171,7 @@ public interface RenamerExtension {
     ///   * `naiveSrg` to `true`
     ///   * `reverse` to `true`
     ///   * `accessTrasnsformers` to `true`
+    ///   * `mixins` to `true`
     Provider<Dependency> dependency(String coordinates, Action<? super RenameJar> action);
 
     /**

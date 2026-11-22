@@ -18,7 +18,15 @@ repositories {
     mavenCentral()
     maven { url = 'https://maven.minecraftforge.net/' }
     // Needed for JEI
-    maven { url = "https://maven.blamejared.com/" }
+    maven { url = 'https://maven.blamejared.com/' }
+    // Needed for the mixn dep demo
+    maven {
+        name = 'CurseMaven'
+        url = 'https://cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
 }
 
 renamer.enableMixinRefmaps {
@@ -49,6 +57,17 @@ dependencies {
     implementation renamer.dependency('net.minecraftforge:srgutils:0.6.0') {
         map = files('libs/srgutils.tsrg')
     }
+
+    // Mixin dependency, it should remap it's refmaps as well as bytecode
+    implementation renamer.dependency("curse.maven:timeless-and-classics-zero-1028108:9623132") {
+        map = files('libs/mappings_official-1.20.1-20230612.114412-map2srg.tsrg.gz')
+        // The following are set to true by default if you apply the net.minecraftforge.gradle plugin
+        reverse = true // We want SRG -> Mapped, We could do this using renamer.convert, but this is a shorthand
+        naiveSrg = true // doesn't provide all of its dependencies, specifically SRG named Minecraft, so we need to naive SRG text replacement
+        accessTransformers = true // rename access transformer config files
+        mixins = true // Enable refmap remapping
+    }
+
     annotationProcessor 'org.spongepowered:mixin:0.8.7:processor'
 }
 

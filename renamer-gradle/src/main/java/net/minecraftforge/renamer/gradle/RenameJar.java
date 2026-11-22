@@ -51,7 +51,15 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
     public abstract @Input Property<Boolean> getNaiveSrg();
     public abstract @Input Property<Boolean> getAccessTransformers();
     public abstract @Input Property<Boolean> getLegacyAccessTransformers();
+
+    /// Tells Renamer to not compress files when building the output jar
+    /// This is done because different compression libraries may produce different compressed bytes.
+    /// Using Store takes more space, but helps make reproduceable jars
     public abstract @Input Property<Boolean> getStore();
+
+    /// Adds the --mixins flag when invoking renamer, this will attempt to remap Mixin related things.
+    /// Currently, this only support refmaps, typically used when remapping dependencies without enabling mixins in your project itself.
+    public abstract @Input Property<Boolean> getMixins();
 
     public abstract @OutputFile RegularFileProperty getOutput();
 
@@ -110,6 +118,7 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
         this.getAccessTransformers().convention(false);
         this.getLegacyAccessTransformers().convention(false);
         this.getStore().convention(false);
+        this.getMixins().convention(false);
     }
 
     @Override
@@ -186,6 +195,9 @@ public abstract class RenameJar extends ToolExecBase<RenamerProblems> implements
 
         if (this.getStore().getOrElse(false))
             this.args("--store");
+
+        if (this.getMixins().getOrElse(false))
+            this.args("--mixins");
 
         super.addArguments();
     }

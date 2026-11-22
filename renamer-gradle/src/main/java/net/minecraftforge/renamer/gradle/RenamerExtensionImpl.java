@@ -155,6 +155,7 @@ abstract class RenamerExtensionImpl implements RenamerExtensionInternal {
                 task.getReverse().convention(true);
                 task.getNaiveSrg().set(true);
                 task.getAccessTransformers().set(true);
+                task.getMixins().set(true);
             }
             action.execute(task);
         });
